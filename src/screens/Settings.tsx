@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -9,17 +9,37 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
-import { ThemedButton } from '@/components/ThemedButton';
-import { ThemedText } from '@/components/ThemedText';
-import { Colors, Palette, Spacing, Typography } from '@/constants/theme';
-import { useFinanceStore } from '@/store/useFinanceStore';
-import { SettingsScreenProps, ThemeMode } from '@/types';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  Database,
+  Download,
+  Info,
+  Moon,
+  Palette as PaletteIcon,
+  Sun,
+  Trash2,
+  X,
+  Zap,
+} from 'lucide-react-native';
 
 const StatusBar = ExpoStatusBar as React.ComponentType<
   React.ComponentProps<typeof ExpoStatusBar> & { backgroundColor?: string }
 >;
 
+import { ThemedButton } from '@/components/ThemedButton';
+import { ThemedText } from '@/components/ThemedText';
+import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { useFinanceStore } from '@/store/useFinanceStore';
+import { SettingsScreenProps, ThemeMode } from '@/types';
+
 export default function SettingsScreen({ onBack }: SettingsScreenProps) {
+  const colors = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+
   const {
     kantongs,
     transaksis,
@@ -50,7 +70,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
       await resetAllData();
       setIsResetting(false);
       setIsResetModalVisible(false);
-      setResetFeedback('SYSTEM DATABASE WIPED & RE-INITIALIZED SUCCESSFULLY.');
+      setResetFeedback('System database wiped & re-initialized successfully.');
       setTimeout(() => {
         setResetFeedback(null);
       }, 5000);
@@ -68,7 +88,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
       const result = await exportFinanceData();
       setIsExporting(false);
       if (result.success) {
-        setExportFeedback('BACKUP SHARED // READY IN CACHE');
+        setExportFeedback('Backup shared successfully // saved in local cache');
         setTimeout(() => setExportFeedback(null), 4000);
       }
     } catch {
@@ -76,84 +96,95 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
     }
   };
 
-  const isLight = themeMode === 'light';
-  const containerBg = isLight ? Palette.white : Palette.black;
-  const cardBg = isLight ? Palette.gray100 : Colors.dark.backgroundElement;
-  const borderColor = isLight ? Palette.gray300 : Palette.gray800;
-  const activeBorderColor = isLight ? Palette.black : Palette.white;
-  const textColor = isLight ? Palette.black : Palette.white;
-  const mutedTextColor = isLight ? Palette.gray600 : Palette.gray400;
-
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: containerBg }]}>
-      <StatusBar backgroundColor={containerBg} style={isLight ? 'dark' : 'light'} />
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
+      <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
 
       {/* Top App Bar */}
-      <View style={[styles.appBar, { borderBottomColor: borderColor, backgroundColor: containerBg }]}>
+      <View style={styles.appBar}>
         <View style={styles.appBarLeft}>
           {onBack && (
-            <Pressable onPress={onBack} style={styles.backButton}>
-              <ThemedText variant="caption" weight="bold" style={{ color: textColor }}>
-                [ &larr; CORE ]
+            <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
+              <ArrowLeft size={16} color={colors.text} />
+              <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
+                DASHBOARD
               </ThemedText>
             </Pressable>
           )}
-          <ThemedText variant="caption" weight="bold" style={[styles.appBarTitle, { color: textColor }]}>
-            SETTINGS // SYSTEM HUB
+          <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
+            MONOCASH // SETTINGS
           </ThemedText>
         </View>
-        <ThemedText variant="caption" style={[styles.versionBadge, { color: mutedTextColor }]}>
-          v1.0.0
-        </ThemedText>
+        <View style={styles.versionBadge}>
+          <Info size={12} color={colors.textSecondary} />
+          <ThemedText variant="caption" style={styles.versionText}>
+            v2.1.0
+          </ThemedText>
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Feedback Alerts */}
         {resetFeedback && (
           <Animated.View
             entering={FadeInDown.duration(300).springify().damping(18)}
-            style={[styles.feedbackSuccessCard, { borderColor: activeBorderColor }]}
+            style={styles.feedbackSuccessCard}
           >
-            <ThemedText weight="bold" style={styles.feedbackSuccessTitle}>
-              ✓ DATABASE RESET COMPLETE
-            </ThemedText>
-            <ThemedText variant="caption" style={styles.feedbackSuccessText}>
-              {resetFeedback}
-            </ThemedText>
+            <CheckCircle2 size={18} color={colors.success} />
+            <View style={styles.feedbackTextWrapper}>
+              <ThemedText weight="bold" style={styles.feedbackSuccessTitle}>
+                Database Reset Complete
+              </ThemedText>
+              <ThemedText variant="caption" style={styles.feedbackSuccessText}>
+                {resetFeedback}
+              </ThemedText>
+            </View>
           </Animated.View>
         )}
 
         {/* Section 1: Theme Preference */}
         <View style={styles.section}>
-          <ThemedText weight="bold" style={[styles.sectionTitle, { color: textColor }]}>
-            // THEME PREFERENCE
-          </ThemedText>
-          <ThemedText variant="caption" style={[styles.sectionDesc, { color: mutedTextColor }]}>
-            Configure high-contrast monochrome aesthetic for device interface.
-          </ThemedText>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconBox}>
+              <PaletteIcon size={16} color={colors.accent} />
+            </View>
+            <View style={styles.sectionTitleWrapper}>
+              <ThemedText weight="bold" style={styles.sectionTitle}>
+                THEME PREFERENCE
+              </ThemedText>
+              <ThemedText variant="caption" style={styles.sectionDesc}>
+                Personalize visual contrast and interface styling.
+              </ThemedText>
+            </View>
+          </View>
 
           <View style={styles.themeOptionsRow}>
-            {/* Pure Black Dark Theme */}
+            {/* Neo-Fintech / Pure Black Theme */}
             <Pressable
               onPress={() => handleSelectTheme('dark')}
               style={[
                 styles.themeCard,
-                { backgroundColor: Palette.black, borderColor: themeMode === 'dark' ? Palette.white : Palette.gray700 },
                 themeMode === 'dark' && styles.themeCardActive,
               ]}
             >
               <View style={styles.themeCardHeader}>
-                <ThemedText weight="bold" style={styles.themeCardTitleDark}>
-                  PURE BLACK
-                </ThemedText>
-                {themeMode === 'dark' && (
-                  <ThemedText variant="caption" weight="bold" style={styles.activeTagDark}>
-                    [ ACTIVE ]
+                <View style={styles.themeCardTitleRow}>
+                  <Moon size={16} color={themeMode === 'dark' ? colors.accent : colors.textSecondary} />
+                  <ThemedText weight="bold" style={styles.themeCardTitle}>
+                    NEO-FINTECH DARK
                   </ThemedText>
+                </View>
+                {themeMode === 'dark' && (
+                  <View style={styles.activePill}>
+                    <Check size={11} color={Palette.pureWhite} />
+                    <ThemedText variant="caption" weight="bold" style={styles.activePillText}>
+                      ACTIVE
+                    </ThemedText>
+                  </View>
                 )}
               </View>
-              <ThemedText variant="caption" style={styles.themeCardDescDark}>
-                OLED true black (#000000) with crisp white typography.
+              <ThemedText variant="caption" style={styles.themeCardDesc}>
+                Modern deep charcoal (#121214) with Indigo accents and vibrant functional badges.
               </ThemedText>
             </Pressable>
 
@@ -162,22 +193,27 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
               onPress={() => handleSelectTheme('light')}
               style={[
                 styles.themeCard,
-                { backgroundColor: Palette.white, borderColor: themeMode === 'light' ? Palette.black : Palette.gray300 },
-                themeMode === 'light' && styles.themeCardActiveLight,
+                themeMode === 'light' && styles.themeCardActive,
               ]}
             >
               <View style={styles.themeCardHeader}>
-                <ThemedText weight="bold" style={styles.themeCardTitleLight}>
-                  INVERTED MONO
-                </ThemedText>
-                {themeMode === 'light' && (
-                  <ThemedText variant="caption" weight="bold" style={styles.activeTagLight}>
-                    [ ACTIVE ]
+                <View style={styles.themeCardTitleRow}>
+                  <Sun size={16} color={themeMode === 'light' ? colors.accent : colors.textSecondary} />
+                  <ThemedText weight="bold" style={styles.themeCardTitle}>
+                    CLEAN LIGHT MONO
                   </ThemedText>
+                </View>
+                {themeMode === 'light' && (
+                  <View style={styles.activePill}>
+                    <Check size={11} color={Palette.pureWhite} />
+                    <ThemedText variant="caption" weight="bold" style={styles.activePillText}>
+                      ACTIVE
+                    </ThemedText>
+                  </View>
                 )}
               </View>
-              <ThemedText variant="caption" style={styles.themeCardDescLight}>
-                High-contrast white (#FFFFFF) with solid black typography.
+              <ThemedText variant="caption" style={styles.themeCardDesc}>
+                Soft bright canvas with crisp dark typography and high-readability borders.
               </ThemedText>
             </Pressable>
           </View>
@@ -185,88 +221,105 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
         {/* Section 2: System Diagnostics */}
         <View style={styles.section}>
-          <ThemedText weight="bold" style={[styles.sectionTitle, { color: textColor }]}>
-            // SYSTEM DIAGNOSTICS & TELEMETRY
-          </ThemedText>
-          <ThemedText variant="caption" style={[styles.sectionDesc, { color: mutedTextColor }]}>
-            Current runtime metrics and local SQLite instance state.
-          </ThemedText>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconBox}>
+              <Database size={16} color={colors.accent} />
+            </View>
+            <View style={styles.sectionTitleWrapper}>
+              <ThemedText weight="bold" style={styles.sectionTitle}>
+                SYSTEM DIAGNOSTICS & TELEMETRY
+              </ThemedText>
+              <ThemedText variant="caption" style={styles.sectionDesc}>
+                Local SQLite instance metrics and offline state.
+              </ThemedText>
+            </View>
+          </View>
 
-          <View style={[styles.diagnosticsCard, { backgroundColor: cardBg, borderColor }]}>
+          <View style={styles.diagnosticsCard}>
             <View style={styles.diagRow}>
-              <ThemedText variant="caption" style={[styles.diagLabel, { color: mutedTextColor }]}>
+              <ThemedText variant="caption" style={styles.diagLabel}>
                 STORAGE ENGINE
               </ThemedText>
-              <ThemedText variant="caption" weight="bold" style={{ color: textColor }}>
+              <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
                 SQLite (WAL MODE)
               </ThemedText>
             </View>
 
-            <View style={[styles.diagDivider, { backgroundColor: borderColor }]} />
+            <View style={styles.diagDivider} />
 
             <View style={styles.diagRow}>
-              <ThemedText variant="caption" style={[styles.diagLabel, { color: mutedTextColor }]}>
+              <ThemedText variant="caption" style={styles.diagLabel}>
                 ENVELOPES (KANTONG)
               </ThemedText>
-              <ThemedText variant="caption" weight="bold" style={{ color: textColor }}>
-                {`${kantongs.length} ENVELOPES`}
+              <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
+                {`${kantongs.length} Active`}
               </ThemedText>
             </View>
 
-            <View style={[styles.diagDivider, { backgroundColor: borderColor }]} />
+            <View style={styles.diagDivider} />
 
             <View style={styles.diagRow}>
-              <ThemedText variant="caption" style={[styles.diagLabel, { color: mutedTextColor }]}>
+              <ThemedText variant="caption" style={styles.diagLabel}>
                 TRANSACTIONS LOGGED
               </ThemedText>
-              <ThemedText variant="caption" weight="bold" style={{ color: textColor }}>
-                {`${transaksis.length} RECORDS`}
+              <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
+                {`${transaksis.length} Records`}
               </ThemedText>
             </View>
 
-            <View style={[styles.diagDivider, { backgroundColor: borderColor }]} />
+            <View style={styles.diagDivider} />
 
             <View style={styles.diagRow}>
-              <ThemedText variant="caption" style={[styles.diagLabel, { color: mutedTextColor }]}>
-                BILLS (TAGIHAN)
+              <ThemedText variant="caption" style={styles.diagLabel}>
+                BILL OBLIGATIONS
               </ThemedText>
-              <ThemedText variant="caption" weight="bold" style={{ color: textColor }}>
-                {`${tagihans.length} OBLIGATIONS`}
+              <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
+                {`${tagihans.length} Scheduled`}
               </ThemedText>
             </View>
 
-            <View style={[styles.diagDivider, { backgroundColor: borderColor }]} />
+            <View style={styles.diagDivider} />
 
             <View style={styles.diagRow}>
-              <ThemedText variant="caption" style={[styles.diagLabel, { color: mutedTextColor }]}>
+              <ThemedText variant="caption" style={styles.diagLabel}>
                 WISHLIST TARGETS
               </ThemedText>
-              <ThemedText variant="caption" weight="bold" style={{ color: textColor }}>
-                {`${wishlists.length} ITEMS`}
+              <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
+                {`${wishlists.length} Goals`}
               </ThemedText>
             </View>
 
-            <View style={[styles.diagDivider, { backgroundColor: borderColor }]} />
+            <View style={styles.diagDivider} />
 
             <View style={styles.diagRow}>
-              <ThemedText variant="caption" style={[styles.diagLabel, { color: mutedTextColor }]}>
+              <ThemedText variant="caption" style={styles.diagLabel}>
                 CONNECTIVITY
               </ThemedText>
-              <ThemedText variant="caption" weight="bold" style={{ color: textColor }}>
-                OFFLINE ONLY (AIR-GAPPED)
-              </ThemedText>
+              <View style={styles.offlineBadge}>
+                <Zap size={11} color={colors.success} />
+                <ThemedText variant="caption" weight="bold" style={styles.offlineText}>
+                  100% OFFLINE (AIR-GAPPED)
+                </ThemedText>
+              </View>
             </View>
           </View>
         </View>
 
         {/* Section 3: Backup & Sharing */}
         <View style={styles.section}>
-          <ThemedText weight="bold" style={[styles.sectionTitle, { color: textColor }]}>
-            // DATA EXPORT UTILITY
-          </ThemedText>
-          <ThemedText variant="caption" style={[styles.sectionDesc, { color: mutedTextColor }]}>
-            Create an RFC 4180 compliant CSV backup of all SQLite tables.
-          </ThemedText>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconBox}>
+              <Download size={16} color={colors.accent} />
+            </View>
+            <View style={styles.sectionTitleWrapper}>
+              <ThemedText weight="bold" style={styles.sectionTitle}>
+                DATA EXPORT UTILITY
+              </ThemedText>
+              <ThemedText variant="caption" style={styles.sectionDesc}>
+                Export an RFC-4180 standard CSV backup of all SQLite tables.
+              </ThemedText>
+            </View>
+          </View>
 
           <ThemedButton
             title={isExporting ? 'GENERATING EXPORT...' : 'EXPORT BACKUP (.CSV)'}
@@ -276,7 +329,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             onPress={handleExportData}
           />
           {exportFeedback && (
-            <ThemedText variant="caption" style={[styles.exportFeedbackText, { color: textColor }]}>
+            <ThemedText variant="caption" style={styles.exportFeedbackText}>
               {exportFeedback}
             </ThemedText>
           )}
@@ -284,16 +337,23 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
         {/* Section 4: Danger Zone (Reset Data) */}
         <View style={[styles.section, styles.dangerSection]}>
-          <ThemedText weight="bold" style={styles.dangerTitle}>
-            ! DANGER ZONE // FACTORY RESET
-          </ThemedText>
-          <ThemedText variant="caption" style={[styles.sectionDesc, { color: mutedTextColor }]}>
-            Wipe all databases and restore the application to initial clean state.
-          </ThemedText>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.dangerIconBox}>
+              <AlertTriangle size={16} color={colors.danger} />
+            </View>
+            <View style={styles.sectionTitleWrapper}>
+              <ThemedText weight="bold" style={styles.dangerTitle}>
+                DANGER ZONE // DATA RESET
+              </ThemedText>
+              <ThemedText variant="caption" style={styles.sectionDesc}>
+                Irreversibly wipe all local SQLite data and restore fresh defaults.
+              </ThemedText>
+            </View>
+          </View>
 
           <ThemedButton
-            title="[ ! ] RESET DATABASE DATA"
-            variant="primary"
+            title="PURGE & RESET ALL DATA"
+            variant="danger"
             size="lg"
             style={styles.resetButton}
             onPress={() => setIsResetModalVisible(true)}
@@ -309,13 +369,24 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
         onRequestClose={() => setIsResetModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setIsResetModalVisible(false)}
+          />
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <ThemedText weight="bold" style={styles.modalWarningTitle}>
-                ! CONFIRM DATA PURGE
-              </ThemedText>
-              <Pressable onPress={() => setIsResetModalVisible(false)} style={styles.modalCloseBtn}>
-                <ThemedText variant="caption">[ ESC ]</ThemedText>
+              <View style={styles.modalHeaderTitleRow}>
+                <Trash2 size={18} color={colors.danger} />
+                <ThemedText weight="bold" style={styles.modalWarningTitle}>
+                  CONFIRM DATA PURGE
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={() => setIsResetModalVisible(false)}
+                style={styles.modalCloseBtn}
+                hitSlop={8}
+              >
+                <X size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
 
@@ -328,16 +399,19 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
                 </View>
               )}
 
-              <ThemedText weight="bold" style={styles.modalWarningHeadline}>
-                ALL LOCAL SQLITE DATA WILL BE DESTROYED PERMANENTLY.
-              </ThemedText>
+              <View style={styles.warningAlertBox}>
+                <AlertTriangle size={20} color={colors.danger} />
+                <ThemedText weight="bold" style={styles.modalWarningHeadline}>
+                  ALL LOCAL SQLITE DATA WILL BE DESTROYED PERMANENTLY.
+                </ThemedText>
+              </View>
 
               <ThemedText variant="caption" style={styles.modalWarningDetail}>
                 This operation drops and re-creates all SQLite tables:
                 {'\n'}• All Envelopes & Kantong balances
-                {'\n'}• All Transaction records & categories
-                {'\n'}• All Bill obligations & schedules
-                {'\n'}• All Wishlist items & attached images
+                {'\n'}• All Transaction records & category history
+                {'\n'}• All Bill obligations & scheduled reminders
+                {'\n'}• All Wishlist targets & attached photos
               </ThemedText>
 
               <ThemedText variant="caption" style={styles.modalWarningConfirm}>
@@ -355,7 +429,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
                 />
                 <ThemedButton
                   title="CONFIRM WIPE ALL"
-                  variant="primary"
+                  variant="danger"
                   size="md"
                   loading={isResetting}
                   style={styles.modalBtn}
@@ -370,208 +444,326 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  appBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderBottomWidth: 1,
-  },
-  appBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  backButton: {
-    paddingVertical: Spacing.half,
-    paddingRight: Spacing.two,
-  },
-  appBarTitle: {
-    letterSpacing: 1,
-  },
-  versionBadge: {
-    letterSpacing: 0.5,
-  },
-  content: {
-    padding: Spacing.three,
-    paddingBottom: Spacing.six * 1.5,
-    gap: Spacing.four,
-  },
-  section: {
-    gap: Spacing.two,
-  },
-  sectionTitle: {
-    fontSize: Typography.scale.sm.fontSize,
-    letterSpacing: 1,
-  },
-  sectionDesc: {
-    letterSpacing: 0.25,
-    lineHeight: 18,
-  },
-  themeOptionsRow: {
-    gap: Spacing.two,
-    marginTop: Spacing.one,
-  },
-  themeCard: {
-    borderWidth: 1,
-    padding: Spacing.three,
-  },
-  themeCardActive: {
-    borderWidth: 2,
-    borderColor: Palette.white,
-  },
-  themeCardActiveLight: {
-    borderWidth: 2,
-    borderColor: Palette.black,
-  },
-  themeCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.one,
-  },
-  themeCardTitleDark: {
-    color: Palette.white,
-    fontSize: Typography.scale.base.fontSize,
-    letterSpacing: 0.5,
-  },
-  activeTagDark: {
-    color: Palette.white,
-    letterSpacing: 1,
-  },
-  themeCardDescDark: {
-    color: Palette.gray400,
-  },
-  themeCardTitleLight: {
-    color: Palette.black,
-    fontSize: Typography.scale.base.fontSize,
-    letterSpacing: 0.5,
-  },
-  activeTagLight: {
-    color: Palette.black,
-    letterSpacing: 1,
-  },
-  themeCardDescLight: {
-    color: Palette.gray600,
-  },
-  diagnosticsCard: {
-    borderWidth: 1,
-    padding: Spacing.three,
-  },
-  diagRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.half,
-  },
-  diagLabel: {
-    letterSpacing: 0.5,
-  },
-  diagDivider: {
-    height: 1,
-    marginVertical: Spacing.one,
-  },
-  exportFeedbackText: {
-    letterSpacing: 0.5,
-    marginTop: Spacing.one,
-  },
-  dangerSection: {
-    borderTopWidth: 1,
-    borderTopColor: Palette.gray800,
-    paddingTop: Spacing.three,
-  },
-  dangerTitle: {
-    color: Palette.white,
-    letterSpacing: 1,
-    fontSize: Typography.scale.sm.fontSize,
-  },
-  resetButton: {
-    marginTop: Spacing.one,
-  },
-  feedbackSuccessCard: {
-    backgroundColor: Palette.black,
-    borderWidth: 1,
-    borderColor: Palette.white,
-    padding: Spacing.three,
-    gap: Spacing.half,
-  },
-  feedbackSuccessTitle: {
-    color: Palette.white,
-    letterSpacing: 0.5,
-  },
-  feedbackSuccessText: {
-    color: Palette.gray300,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.three,
-  },
-  modalContainer: {
-    width: '100%',
-    maxWidth: 480,
-    backgroundColor: Palette.black,
-    borderWidth: 2,
-    borderColor: Palette.white,
-    padding: Spacing.three,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray800,
-    paddingBottom: Spacing.two,
-  },
-  modalWarningTitle: {
-    color: Palette.white,
-    letterSpacing: 1,
-    fontSize: Typography.scale.md.fontSize,
-  },
-  modalCloseBtn: {
-    padding: Spacing.half,
-  },
-  modalBody: {
-    paddingTop: Spacing.two,
-    gap: Spacing.two,
-  },
-  errorBox: {
-    borderWidth: 1,
-    borderColor: Palette.white,
-    padding: Spacing.two,
-  },
-  errorText: {
-    color: Palette.white,
-  },
-  modalWarningHeadline: {
-    color: Palette.white,
-    fontSize: Typography.scale.base.fontSize,
-    lineHeight: 20,
-    letterSpacing: 0.5,
-  },
-  modalWarningDetail: {
-    color: Palette.gray400,
-    lineHeight: 20,
-    letterSpacing: 0.5,
-  },
-  modalWarningConfirm: {
-    color: Palette.white,
-    letterSpacing: 0.5,
-    marginTop: Spacing.one,
-  },
-  modalActionsRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    marginTop: Spacing.two,
-  },
-  modalBtn: {
-    flex: 1,
-  },
-});
+const getStyles = (colors: ColorTheme) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    appBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two * 1.25,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    appBarLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    navButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one * 1.5,
+      paddingVertical: Spacing.one,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    navButtonText: {
+      color: colors.text,
+      letterSpacing: 0.5,
+    },
+    appBarTitle: {
+      letterSpacing: 1,
+      color: colors.text,
+    },
+    versionBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 2,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    versionText: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    content: {
+      padding: Spacing.three,
+      paddingBottom: Spacing.six * 1.5,
+      gap: Spacing.four,
+    },
+    feedbackSuccessCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.three,
+    },
+    feedbackTextWrapper: {
+      flex: 1,
+    },
+    feedbackSuccessTitle: {
+      color: colors.success,
+      fontSize: Typography.scale.sm.fontSize,
+      marginBottom: 2,
+    },
+    feedbackSuccessText: {
+      color: colors.text,
+    },
+    section: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.xl,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: Spacing.three,
+      gap: Spacing.two * 1.25,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    sectionIconBox: {
+      width: 32,
+      height: 32,
+      borderRadius: BorderRadius.md,
+      backgroundColor: 'rgba(99, 102, 241, 0.12)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sectionTitleWrapper: {
+      flex: 1,
+    },
+    sectionTitle: {
+      fontSize: Typography.scale.sm.fontSize,
+      color: colors.text,
+      letterSpacing: 0.5,
+    },
+    sectionDesc: {
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    themeOptionsRow: {
+      gap: Spacing.two,
+      marginTop: Spacing.one,
+    },
+    themeCard: {
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.backgroundSelected,
+      padding: Spacing.three,
+      gap: Spacing.one,
+    },
+    themeCardActive: {
+      borderColor: colors.accent,
+      backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    },
+    themeCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    themeCardTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one * 1.5,
+    },
+    themeCardTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 0.3,
+    },
+    activePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.accent,
+      borderRadius: BorderRadius.full,
+      paddingVertical: 2,
+      paddingHorizontal: Spacing.two,
+    },
+    activePillText: {
+      color: Palette.pureWhite,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    themeCardDesc: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    diagnosticsCard: {
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: Spacing.three,
+      gap: Spacing.two,
+    },
+    diagRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    diagLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    diagValue: {
+      color: colors.text,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    diagDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    offlineBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingVertical: 2,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.25)',
+    },
+    offlineText: {
+      color: colors.success,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    exportFeedbackText: {
+      color: colors.success,
+      marginTop: Spacing.one,
+      textAlign: 'center',
+    },
+    dangerSection: {
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      backgroundColor: 'rgba(239, 68, 68, 0.04)',
+    },
+    dangerIconBox: {
+      width: 32,
+      height: 32,
+      borderRadius: BorderRadius.md,
+      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dangerTitle: {
+      color: colors.danger,
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 0.5,
+    },
+    resetButton: {
+      marginTop: Spacing.one,
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: Spacing.three,
+    },
+    modalBackdrop: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    },
+    modalContainer: {
+      width: '100%',
+      maxWidth: 480,
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.xl,
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.4)',
+      overflow: 'hidden',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: Spacing.three,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    modalHeaderTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    modalWarningTitle: {
+      color: colors.danger,
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 0.5,
+    },
+    modalCloseBtn: {
+      width: 30,
+      height: 30,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalBody: {
+      padding: Spacing.three * 1.2,
+      gap: Spacing.three,
+    },
+    warningAlertBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      padding: Spacing.two * 1.25,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+    },
+    modalWarningHeadline: {
+      flex: 1,
+      color: colors.danger,
+      fontSize: Typography.scale.xs.fontSize,
+      lineHeight: 18,
+    },
+    modalWarningDetail: {
+      color: colors.textSecondary,
+      lineHeight: 20,
+      backgroundColor: colors.backgroundSelected,
+      padding: Spacing.two * 1.25,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalWarningConfirm: {
+      color: colors.textMuted,
+      textAlign: 'center',
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    modalActionsRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+    },
+    modalBtn: {
+      flex: 1,
+    },
+    errorBox: {
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      borderRadius: BorderRadius.md,
+      padding: Spacing.two,
+    },
+    errorText: {
+      color: colors.danger,
+    },
+  });

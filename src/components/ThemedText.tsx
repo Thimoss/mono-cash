@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { Colors, MonospaceFamily, Typography } from '@/constants/theme';
+import { Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { ThemedTextProps, ThemedTextVariant } from '@/types';
 
 export function ThemedText({
@@ -9,23 +10,42 @@ export function ThemedText({
   color,
   themeColor,
   weight,
+  mono,
   style,
   ...rest
 }: ThemedTextProps) {
+  const colors = useTheme();
   const selectedVariant: ThemedTextVariant = variant ?? type ?? 'body';
+
+  const getDefaultColor = (v: ThemedTextVariant) => {
+    switch (v) {
+      case 'caption':
+      case 'code':
+        return colors.textSecondary;
+      case 'link':
+      case 'linkPrimary':
+        return colors.accent;
+      default:
+        return colors.text;
+    }
+  };
 
   const textColor =
     color ??
-    (themeColor ? Colors.dark[themeColor] : Colors.dark.text);
+    (themeColor ? colors[themeColor] : getDefaultColor(selectedVariant));
 
   const weightStyle = weight ? weightStyles[weight] : null;
+
+  const isMonospace =
+    mono || selectedVariant === 'amount' || selectedVariant === 'code';
 
   return (
     <Text
       style={[
         styles.base,
-        { color: textColor },
+        isMonospace && styles.mono,
         variantStyles[selectedVariant],
+        { color: textColor },
         weightStyle,
         style,
       ]}
@@ -36,8 +56,10 @@ export function ThemedText({
 
 const styles = StyleSheet.create({
   base: {
-    fontFamily: MonospaceFamily,
-    color: Colors.dark.text,
+    fontFamily: Typography.sans,
+  },
+  mono: {
+    fontFamily: Typography.mono,
   },
 });
 
@@ -86,32 +108,32 @@ const variantStyles = StyleSheet.create({
     lineHeight: Typography.scale.sm.lineHeight,
     letterSpacing: Typography.scale.sm.letterSpacing,
     fontWeight: Typography.weight.regular,
-    color: Colors.dark.textSecondary,
   },
   small: {
-    fontSize: Typography.scale.sm.fontSize,
-    lineHeight: Typography.scale.sm.lineHeight,
-    letterSpacing: Typography.scale.sm.letterSpacing,
+    fontSize: Typography.scale.xs.fontSize,
+    lineHeight: Typography.scale.xs.lineHeight,
+    letterSpacing: Typography.scale.xs.letterSpacing,
     fontWeight: Typography.weight.regular,
   },
   smallBold: {
-    fontSize: Typography.scale.sm.fontSize,
-    lineHeight: Typography.scale.sm.lineHeight,
-    letterSpacing: Typography.scale.sm.letterSpacing,
+    fontSize: Typography.scale.xs.fontSize,
+    lineHeight: Typography.scale.xs.lineHeight,
+    letterSpacing: Typography.scale.xs.letterSpacing,
     fontWeight: Typography.weight.bold,
   },
   amount: {
     fontSize: Typography.scale['2xl'].fontSize,
     lineHeight: Typography.scale['2xl'].lineHeight,
-    letterSpacing: Typography.scale['2xl'].letterSpacing,
+    letterSpacing: -0.5,
+    fontFamily: Typography.mono,
     fontWeight: Typography.weight.bold,
   },
   code: {
     fontSize: Typography.scale.sm.fontSize,
     lineHeight: Typography.scale.sm.lineHeight,
-    letterSpacing: Typography.scale.sm.letterSpacing,
+    letterSpacing: 0,
+    fontFamily: Typography.mono,
     fontWeight: Typography.weight.regular,
-    color: Colors.dark.textSecondary,
   },
   link: {
     fontSize: Typography.scale.base.fontSize,

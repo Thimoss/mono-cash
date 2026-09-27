@@ -9,16 +9,33 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import {
+  AlertCircle,
+  ArrowUpRight,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  CreditCard,
+  Folder,
+  Heart,
+  PiggyBank,
+  Plus,
+  Receipt,
+  Settings,
+  Share2,
+  Wallet,
+} from 'lucide-react-native';
+import { ActionModal } from '@/components/ActionModal';
+import { ThemedButton } from '@/components/ThemedButton';
+import { ThemedText } from '@/components/ThemedText';
+import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { useFinanceStore } from '@/store/useFinanceStore';
+import { ActionModalMode, DashboardProps, KantongCardProps } from '@/types';
 
 const StatusBar = ExpoStatusBar as React.ComponentType<
   React.ComponentProps<typeof ExpoStatusBar> & { backgroundColor?: string }
 >;
-import { ActionModal } from '@/components/ActionModal';
-import { ThemedButton } from '@/components/ThemedButton';
-import { ThemedText } from '@/components/ThemedText';
-import { Colors, Palette, Spacing, Typography } from '@/constants/theme';
-import { useFinanceStore } from '@/store/useFinanceStore';
-import { ActionModalMode, DashboardProps, KantongCardProps } from '@/types';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('id-ID', {
@@ -37,10 +54,28 @@ function formatDate(isoString: string): string {
   }
 }
 
+function getKantongIcon(name: string) {
+  const upper = name.toUpperCase();
+  if (upper.includes('TABUNG') || upper.includes('SAVE') || upper.includes('INVEST')) {
+    return PiggyBank;
+  }
+  if (upper.includes('KREDIT') || upper.includes('CARD') || upper.includes('HUTANG') || upper.includes('DEBT')) {
+    return CreditCard;
+  }
+  if (upper.includes('DOMPET') || upper.includes('CASH') || upper.includes('OPERASIONAL') || upper.includes('MAIN')) {
+    return Wallet;
+  }
+  return Folder;
+}
+
 function KantongCard({ kantong, index, onPress }: KantongCardProps) {
+  const colors = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+  const IconComponent = getKantongIcon(kantong.name);
+
   return (
     <Animated.View
-      entering={FadeInDown.delay(index * 60).duration(350).springify().damping(15)}
+      entering={FadeInDown.delay(index * 50).duration(300).springify().damping(16)}
     >
       <Pressable
         style={styles.cardContainer}
@@ -49,16 +84,21 @@ function KantongCard({ kantong, index, onPress }: KantongCardProps) {
         accessibilityLabel={`View Kantong ${kantong.name}`}
       >
         <View style={styles.cardHeader}>
-          <ThemedText weight="semibold" style={styles.cardTitle}>
-            {kantong.name.toUpperCase()}
-          </ThemedText>
-          <View style={styles.cardHeaderRight}>
-            <ThemedText variant="caption" style={styles.cardIndex}>
-              {`[ ${String(index + 1).padStart(2, '0')} ]`}
-            </ThemedText>
-            <ThemedText variant="caption" style={styles.cardChevron}>
-              [ &rarr; ]
-            </ThemedText>
+          <View style={styles.cardHeaderLeft}>
+            <View style={styles.iconCircle}>
+              <IconComponent size={18} color={colors.accent} />
+            </View>
+            <View style={styles.cardTitleBox}>
+              <ThemedText weight="semibold" style={styles.cardTitle}>
+                {kantong.name}
+              </ThemedText>
+              <ThemedText variant="caption" style={styles.cardIndex}>
+                {`Envelopes #${String(index + 1).padStart(2, '0')}`}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.cardChevronBox}>
+            <ChevronRight size={18} color={colors.textSecondary} />
           </View>
         </View>
 
@@ -66,7 +106,7 @@ function KantongCard({ kantong, index, onPress }: KantongCardProps) {
 
         <View style={styles.cardBody}>
           <ThemedText variant="caption" style={styles.balanceLabel}>
-            AVAILABLE BALANCE
+            Available Balance
           </ThemedText>
           <ThemedText variant="amount" style={styles.cardBalance}>
             {formatCurrency(kantong.balance)}
@@ -74,8 +114,9 @@ function KantongCard({ kantong, index, onPress }: KantongCardProps) {
         </View>
 
         <View style={styles.cardFooter}>
+          <Clock size={12} color={colors.textSecondary} />
           <ThemedText variant="caption" style={styles.cardDate}>
-            {`UPDATED: ${formatDate(kantong.updatedAt)}`}
+            {`Updated: ${formatDate(kantong.updatedAt)}`}
           </ThemedText>
         </View>
       </Pressable>
@@ -89,6 +130,9 @@ export default function Dashboard({
   onNavigateSettings,
   onSelectKantong,
 }: DashboardProps) {
+  const colors = useTheme();
+  const themeMode = useFinanceStore((state) => state.themeMode);
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const { kantongs, isLoading, loadInitialData, exportFinanceData } = useFinanceStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -109,22 +153,22 @@ export default function Dashboard({
       const result = await exportFinanceData();
       setIsExporting(false);
       if (result.success) {
-        setExportFeedback('BACKUP GENERATED // NATIVE SHARE SHEET OPENED');
+        setExportFeedback('Backup ready. Native share dialog opened.');
         setTimeout(() => {
           setExportFeedback(null);
         }, 4500);
       } else if (result.error && result.error !== 'SHARING_NOT_AVAILABLE_ON_DEVICE') {
-        setExportError(`EXPORT FAILED: ${result.error.toUpperCase()}`);
+        setExportError(`Export failed: ${result.error}`);
       } else if (result.fileUri) {
-        setExportFeedback(`SAVED TO CACHE: ${result.fileUri.split('/').pop()}`);
+        setExportFeedback(`Saved to cache: ${result.fileUri.split('/').pop()}`);
         setTimeout(() => {
           setExportFeedback(null);
         }, 4500);
       }
     } catch (err) {
       setIsExporting(false);
-      const msg = err instanceof Error ? err.message : 'EXPORT FAILED';
-      setExportError(`ERROR: ${msg.toUpperCase()}`);
+      const msg = err instanceof Error ? err.message : 'Export failed';
+      setExportError(`Error: ${msg}`);
     }
   };
 
@@ -150,75 +194,121 @@ export default function Dashboard({
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
+      {/* App Bar / Top Navigation */}
       <View style={styles.appBar}>
-        <ThemedText variant="caption" style={styles.appBarTitle}>
-          MONOCASH // CORE
-        </ThemedText>
+        <View style={styles.appBarBranding}>
+          <View style={styles.brandIconBox}>
+            <Wallet size={18} color={Palette.pureWhite} />
+          </View>
+          <View>
+            <ThemedText weight="bold" style={styles.appBarTitle}>
+              MonoCash
+            </ThemedText>
+            <ThemedText variant="caption" style={styles.appBarSubtitle}>
+              Neo-Fintech Core
+            </ThemedText>
+          </View>
+        </View>
+
         <View style={styles.navRow}>
           {Boolean(onNavigateBills) && (
             <Pressable onPress={onNavigateBills} style={styles.navButton}>
-              <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-                [ BILLS &rarr; ]
+              <Receipt size={14} color={colors.textSecondary} />
+              <ThemedText variant="caption" weight="semibold" style={styles.navButtonText}>
+                Bills
               </ThemedText>
             </Pressable>
           )}
           {Boolean(onNavigateWishlist) && (
             <Pressable onPress={onNavigateWishlist} style={styles.navButton}>
-              <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-                [ WISHLIST &rarr; ]
+              <Heart size={14} color={colors.textSecondary} />
+              <ThemedText variant="caption" weight="semibold" style={styles.navButtonText}>
+                Wishlist
               </ThemedText>
             </Pressable>
           )}
           {Boolean(onNavigateSettings) && (
-            <Pressable onPress={onNavigateSettings} style={styles.navButton}>
-              <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-                [ CONFIG ]
-              </ThemedText>
+            <Pressable onPress={onNavigateSettings} style={styles.iconNavButton}>
+              <Settings size={16} color={colors.textSecondary} />
             </Pressable>
           )}
         </View>
       </View>
 
+      {/* Aggregated Total Balance Hero Card */}
       <View style={styles.totalBalanceBox}>
+        <View style={styles.totalBalanceHeader}>
+          <View style={styles.balanceBadge}>
+            <View style={styles.livePulseDot} />
+            <ThemedText variant="caption" weight="bold" style={styles.balanceBadgeText}>
+              TOTAL ASSETS
+            </ThemedText>
+          </View>
+          <View style={styles.walletIconBox}>
+            <Wallet size={18} color={colors.accent} />
+          </View>
+        </View>
+
         <ThemedText variant="caption" style={styles.totalBalanceLabel}>
-          TOTAL AGGREGATED BALANCE
+          Net Aggregated Balance
         </ThemedText>
         <ThemedText variant="title" style={styles.totalBalanceAmount}>
           {formatCurrency(totalBalance)}
         </ThemedText>
+
         <View style={styles.balanceMetaRow}>
-          <ThemedText variant="caption" style={styles.metaText}>
-            {`KANTONG: ${kantongs.length}`}
-          </ThemedText>
-          <ThemedText variant="caption" style={styles.metaText}>
-            STATUS: ACTIVE
-          </ThemedText>
+          <View style={styles.metaItem}>
+            <Folder size={14} color={colors.textSecondary} />
+            <ThemedText variant="caption" style={styles.metaText}>
+              {`${kantongs.length} Active Envelopes`}
+            </ThemedText>
+          </View>
+          <View style={styles.metaBadge}>
+            <ThemedText variant="caption" weight="bold" style={styles.metaBadgeText}>
+              OFFLINE READY
+            </ThemedText>
+          </View>
         </View>
       </View>
 
+      {/* Main Quick Action Buttons */}
       <View style={styles.actionButtonsRow}>
         <ThemedButton
-          title="+ KANTONG"
           variant="primary"
-          size="sm"
+          size="md"
           style={styles.actionButton}
           onPress={() => openActionModal('KANTONG')}
-        />
+        >
+          <View style={styles.btnContentRow}>
+            <Plus size={16} color={Palette.pureWhite} />
+            <ThemedText weight="semibold" style={styles.btnPrimaryText}>
+              New Kantong
+            </ThemedText>
+          </View>
+        </ThemedButton>
+
         <ThemedButton
-          title="+ TRANSAKSI"
-          variant="outline"
-          size="sm"
+          variant="secondary"
+          size="md"
           style={styles.actionButton}
           onPress={() => openActionModal('TRANSAKSI')}
-        />
+        >
+          <View style={styles.btnContentRow}>
+            <ArrowUpRight size={16} color={colors.text} />
+            <ThemedText weight="semibold" style={styles.btnSecondaryText}>
+              Record Entry
+            </ThemedText>
+          </View>
+        </ThemedButton>
       </View>
 
+      {/* Section Header */}
       <View style={styles.sectionHeaderRow}>
         <ThemedText weight="bold" style={styles.sectionHeaderTitle}>
-          ENVELOPES & KANTONG
+          Envelopes & Kantongs
         </ThemedText>
         <ThemedText variant="caption" style={styles.sectionHeaderCount}>
-          {`COUNT: ${kantongs.length}`}
+          {`${kantongs.length} Total`}
         </ThemedText>
       </View>
     </View>
@@ -228,18 +318,21 @@ export default function Dashboard({
     if (isLoading) {
       return (
         <View style={styles.emptyContainer}>
-          <ThemedText variant="caption">LOADING KANTONG DATA...</ThemedText>
+          <ThemedText variant="caption">Loading Kantong data...</ThemedText>
         </View>
       );
     }
 
     return (
       <View style={styles.emptyContainer}>
-        <ThemedText variant="caption" style={styles.emptyText}>
-          NO KANTONG REGISTERED
+        <View style={styles.emptyIconCircle}>
+          <Folder size={24} color={colors.textSecondary} />
+        </View>
+        <ThemedText weight="semibold" style={styles.emptyText}>
+          No Envelopes Created Yet
         </ThemedText>
         <ThemedText variant="caption" style={styles.emptySubtext}>
-          CREATE AN ENVELOPE TO BEGIN TRACKING
+          Tap "New Kantong" above to organize your cash envelopes.
         </ThemedText>
       </View>
     );
@@ -249,40 +342,46 @@ export default function Dashboard({
     <View style={styles.footerSection}>
       <View style={styles.utilityCard}>
         <View style={styles.utilityHeaderRow}>
-          {/* SETTINGS & DATA UTILITIES */}
-          <ThemedText weight="bold" style={styles.utilityTitle}>
-            {'// SETTINGS & DATA UTILITIES'}
-          </ThemedText>
-          <ThemedText variant="caption" style={styles.utilityTag}>
-            OFFLINE
-          </ThemedText>
+          <View style={styles.utilityTitleGroup}>
+            <Share2 size={16} color={colors.accent} />
+            <ThemedText weight="bold" style={styles.utilityTitle}>
+              Data Backup & Utilities
+            </ThemedText>
+          </View>
+          <View style={styles.offlinePill}>
+            <ThemedText variant="caption" weight="bold" style={styles.offlinePillText}>
+              OFFLINE
+            </ThemedText>
+          </View>
         </View>
 
         <ThemedText variant="caption" style={styles.utilityDesc}>
-          Export all SQLite data (Kantongs, Transaksis, Tagihans, Wishlists) to spreadsheet-compatible CSV format for sharing or local backup.
+          Export all SQLite data (Kantongs, Transaksis, Tagihans, Wishlists) to RFC 4180 CSV format for local backup or sharing.
         </ThemedText>
-
-        <View style={styles.utilityDivider} />
 
         <View style={styles.utilityMetaRow}>
           <ThemedText variant="caption" style={styles.utilityMeta}>
-            STORAGE: SQLite (WAL)
+            Engine: SQLite (WAL)
           </ThemedText>
           <ThemedText variant="caption" style={styles.utilityMeta}>
-            FORMAT: RFC 4180
+            Format: Standard CSV
           </ThemedText>
         </View>
 
-        <View style={styles.exportButtonWrapper}>
-          <ThemedButton
-            title={isExporting ? 'GENERATING EXPORT...' : 'EXPORT DATA (.CSV / .XLSX)'}
-            variant="outline"
-            size="md"
-            loading={isExporting}
-            disabled={isExporting}
-            onPress={handleExport}
-          />
-        </View>
+        <ThemedButton
+          variant="outline"
+          size="md"
+          loading={isExporting}
+          disabled={isExporting}
+          onPress={handleExport}
+        >
+          <View style={styles.btnContentRow}>
+            <Share2 size={16} color={colors.text} />
+            <ThemedText weight="semibold" style={styles.exportBtnText}>
+              {isExporting ? 'Exporting...' : 'Export Data (.CSV)'}
+            </ThemedText>
+          </View>
+        </ThemedButton>
 
         {Boolean(exportFeedback) && (
           <Animated.View
@@ -290,11 +389,9 @@ export default function Dashboard({
             style={styles.feedbackSuccessCard}
           >
             <View style={styles.feedbackIconRow}>
+              <CheckCircle2 size={16} color={colors.success} />
               <ThemedText weight="bold" style={styles.feedbackSuccessTitle}>
-                ✓ EXPORT COMPLETE
-              </ThemedText>
-              <ThemedText variant="caption" style={styles.feedbackSuccessBadge}>
-                [ READY ]
+                Backup Complete
               </ThemedText>
             </View>
             <ThemedText variant="caption" style={styles.feedbackSuccessText}>
@@ -308,9 +405,12 @@ export default function Dashboard({
             entering={FadeInDown.duration(300).springify().damping(18)}
             style={styles.feedbackErrorCard}
           >
-            <ThemedText weight="bold" style={styles.feedbackErrorTitle}>
-              ! EXPORT NOTICE
-            </ThemedText>
+            <View style={styles.feedbackIconRow}>
+              <AlertCircle size={16} color={colors.danger} />
+              <ThemedText weight="bold" style={styles.feedbackErrorTitle}>
+                Export Notice
+              </ThemedText>
+            </View>
             <ThemedText variant="caption" style={styles.feedbackErrorText}>
               {exportError}
             </ThemedText>
@@ -322,7 +422,7 @@ export default function Dashboard({
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
-      <StatusBar backgroundColor="#000000" style="light" />
+      <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
 
       <FlatList
         data={kantongs}
@@ -342,8 +442,8 @@ export default function Dashboard({
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor={Palette.white}
-            colors={[Palette.black]}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
           />
         }
       />
@@ -357,250 +457,382 @@ export default function Dashboard({
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Palette.black,
-  },
-  listContent: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.six,
-  },
-  headerSection: {
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
-  },
-  appBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: Spacing.two,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray800,
-    marginBottom: Spacing.three,
-  },
-  appBarTitle: {
-    letterSpacing: 1.5,
-    color: Palette.white,
-    fontWeight: Typography.weight.semibold,
-  },
-  navRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  navButton: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    backgroundColor: Colors.dark.backgroundElement,
-  },
-  navButtonText: {
-    color: Palette.white,
-    letterSpacing: 1,
-  },
-  totalBalanceBox: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: Spacing.three,
-    marginBottom: Spacing.three,
-  },
-  totalBalanceLabel: {
-    color: Palette.gray400,
-    letterSpacing: 1,
-    marginBottom: Spacing.half,
-  },
-  totalBalanceAmount: {
-    fontSize: Typography.scale['3xl'].fontSize,
-    lineHeight: Typography.scale['3xl'].lineHeight,
-    color: Palette.white,
-    marginBottom: Spacing.two,
-  },
-  balanceMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: Palette.gray800,
-    paddingTop: Spacing.one,
-  },
-  metaText: {
-    color: Palette.gray500,
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    marginBottom: Spacing.four,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: Spacing.one,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray700,
-    marginBottom: Spacing.two,
-  },
-  sectionHeaderTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.sm.fontSize,
-    letterSpacing: 1,
-  },
-  sectionHeaderCount: {
-    color: Palette.gray400,
-  },
-  cardContainer: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: Spacing.three,
-    marginBottom: Spacing.two,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardTitle: {
-    fontSize: Typography.scale.base.fontSize,
-    color: Palette.white,
-    letterSpacing: 0.5,
-  },
-  cardIndex: {
-    color: Palette.gray500,
-  },
-  cardHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one * 1.5,
-  },
-  cardChevron: {
-    color: Palette.white,
-    letterSpacing: 0.5,
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: Palette.gray800,
-    marginVertical: Spacing.two,
-  },
-  cardBody: {
-    marginBottom: Spacing.one,
-  },
-  balanceLabel: {
-    color: Palette.gray500,
-    marginBottom: Spacing.half,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  cardBalance: {
-    color: Palette.white,
-  },
-  cardFooter: {
-    marginTop: Spacing.one,
-  },
-  cardDate: {
-    color: Palette.gray600,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  emptyContainer: {
-    padding: Spacing.six,
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.two,
-  },
-  emptyText: {
-    color: Palette.gray300,
-    marginBottom: Spacing.half,
-  },
-  emptySubtext: {
-    color: Palette.gray600,
-  },
-  footerSection: {
-    marginTop: Spacing.four,
-    paddingBottom: Spacing.four,
-  },
-  utilityCard: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: Spacing.three,
-  },
-  utilityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.one,
-  },
-  utilityTitle: {
-    fontSize: Typography.scale.sm.fontSize,
-    color: Palette.white,
-    letterSpacing: 1,
-  },
-  utilityTag: {
-    color: Palette.gray500,
-  },
-  utilityDesc: {
-    color: Palette.gray400,
-    lineHeight: 18,
-    marginBottom: Spacing.two,
-  },
-  utilityDivider: {
-    height: 1,
-    backgroundColor: Palette.gray800,
-    marginBottom: Spacing.two,
-  },
-  utilityMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.three,
-  },
-  utilityMeta: {
-    color: Palette.gray500,
-  },
-  exportButtonWrapper: {
-    width: '100%',
-  },
-  feedbackSuccessCard: {
-    marginTop: Spacing.three,
-    backgroundColor: Palette.white,
-    borderColor: Palette.white,
-    borderWidth: 1,
-    padding: Spacing.two,
-  },
-  feedbackIconRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  feedbackSuccessTitle: {
-    color: Palette.black,
-    letterSpacing: 1,
-  },
-  feedbackSuccessBadge: {
-    color: Palette.gray700,
-  },
-  feedbackSuccessText: {
-    color: Palette.gray800,
-  },
-  feedbackErrorCard: {
-    marginTop: Spacing.three,
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Palette.gray700,
-    borderWidth: 1,
-    padding: Spacing.two,
-  },
-  feedbackErrorTitle: {
-    color: Palette.white,
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  feedbackErrorText: {
-    color: Palette.gray400,
-  },
-});
+const getStyles = (colors: ColorTheme) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    listContent: {
+      paddingHorizontal: Spacing.three,
+      paddingBottom: Spacing.six,
+    },
+    headerSection: {
+      paddingTop: Spacing.one,
+      paddingBottom: Spacing.two,
+    },
+    appBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: Spacing.two,
+      marginBottom: Spacing.three,
+    },
+    appBarBranding: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    brandIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    appBarTitle: {
+      fontSize: Typography.scale.base.fontSize,
+      color: colors.text,
+    },
+    appBarSubtitle: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    navRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one * 1.5,
+    },
+    navButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    iconNavButton: {
+      width: 34,
+      height: 34,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    navButtonText: {
+      color: colors.text,
+    },
+    totalBalanceBox: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: Spacing.four,
+      marginBottom: Spacing.three,
+    },
+    totalBalanceHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.two,
+    },
+    balanceBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    livePulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: colors.success,
+    },
+    balanceBadgeText: {
+      color: colors.text,
+      fontSize: Typography.scale.xs.fontSize,
+      letterSpacing: 0.5,
+    },
+    walletIconBox: {
+      width: 32,
+      height: 32,
+      borderRadius: BorderRadius.sm,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    totalBalanceLabel: {
+      color: colors.textSecondary,
+      marginBottom: Spacing.half,
+    },
+    totalBalanceAmount: {
+      fontSize: Typography.scale['3xl'].fontSize,
+      lineHeight: Typography.scale['3xl'].lineHeight,
+      color: colors.text,
+      fontFamily: Typography.mono,
+      marginBottom: Spacing.two,
+    },
+    balanceMetaRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: Spacing.two,
+    },
+    metaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    metaText: {
+      color: colors.textSecondary,
+    },
+    metaBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: BorderRadius.sm,
+      backgroundColor: colors.backgroundSelected,
+    },
+    metaBadgeText: {
+      color: colors.success,
+      fontSize: 10,
+      letterSpacing: 0.5,
+    },
+    actionButtonsRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+      marginBottom: Spacing.four,
+    },
+    actionButton: {
+      flex: 1,
+    },
+    btnContentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.one * 1.5,
+    },
+    btnPrimaryText: {
+      color: Palette.pureWhite,
+    },
+    btnSecondaryText: {
+      color: colors.text,
+    },
+    exportBtnText: {
+      color: colors.text,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: Spacing.one,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      marginBottom: Spacing.two,
+    },
+    sectionHeaderTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+    },
+    sectionHeaderCount: {
+      color: colors.textSecondary,
+    },
+    cardContainer: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: Spacing.three,
+      marginBottom: Spacing.two,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    cardHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    iconCircle: {
+      width: 38,
+      height: 38,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardTitleBox: {
+      gap: 2,
+    },
+    cardTitle: {
+      fontSize: Typography.scale.base.fontSize,
+      color: colors.text,
+    },
+    cardIndex: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    cardChevronBox: {
+      padding: Spacing.half,
+    },
+    cardDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: Spacing.two,
+    },
+    cardBody: {
+      marginBottom: Spacing.one,
+    },
+    balanceLabel: {
+      color: colors.textSecondary,
+      marginBottom: Spacing.half,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    cardBalance: {
+      color: colors.text,
+      fontFamily: Typography.mono,
+    },
+    cardFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: Spacing.one,
+    },
+    cardDate: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    emptyContainer: {
+      padding: Spacing.five,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: Spacing.two,
+      gap: Spacing.one,
+    },
+    emptyIconCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.one,
+    },
+    emptyText: {
+      color: colors.text,
+    },
+    emptySubtext: {
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    footerSection: {
+      marginTop: Spacing.four,
+      paddingBottom: Spacing.four,
+    },
+    utilityCard: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: Spacing.three,
+    },
+    utilityHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.one,
+    },
+    utilityTitleGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    utilityTitle: {
+      fontSize: Typography.scale.sm.fontSize,
+      color: colors.text,
+    },
+    offlinePill: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: BorderRadius.sm,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    offlinePillText: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      letterSpacing: 0.5,
+    },
+    utilityDesc: {
+      color: colors.textSecondary,
+      lineHeight: 18,
+      marginBottom: Spacing.two,
+    },
+    utilityMetaRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.three,
+    },
+    utilityMeta: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    feedbackSuccessCard: {
+      marginTop: Spacing.two,
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.success,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      padding: Spacing.two,
+      gap: 4,
+    },
+    feedbackIconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    feedbackSuccessTitle: {
+      color: colors.success,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    feedbackSuccessText: {
+      color: colors.text,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    feedbackErrorCard: {
+      marginTop: Spacing.two,
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.danger,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      padding: Spacing.two,
+      gap: 4,
+    },
+    feedbackErrorTitle: {
+      color: colors.danger,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    feedbackErrorText: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+  });

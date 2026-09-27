@@ -113,6 +113,7 @@ export interface FinanceState {
   error: string | null;
   loadInitialData: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => void;
+  toggleTheme: () => void;
   resetAllData: () => Promise<void>;
   addKantong: (input: AddKantongInput) => Promise<Kantong>;
   updateKantong: (id: string, input: UpdateKantongInput) => Promise<Kantong | null>;
@@ -153,9 +154,10 @@ export interface ThemedTextProps extends TextProps {
   color?: string;
   themeColor?: ThemeColor;
   weight?: ThemedTextWeight;
+  mono?: boolean;
 }
 
-export type ThemedButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type ThemedButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'success' | 'danger';
 export type ThemedButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ThemedButtonProps {

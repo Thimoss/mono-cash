@@ -47,6 +47,10 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   error: null,
 
   setThemeMode: (mode: ThemeMode) => set({ themeMode: mode }),
+  toggleTheme: () =>
+    set((state) => ({
+      themeMode: state.themeMode === 'dark' ? 'light' : 'dark',
+    })),
 
   resetAllData: async () => {
     set({ isLoading: true, error: null });

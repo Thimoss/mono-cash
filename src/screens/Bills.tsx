@@ -11,6 +11,17 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Receipt,
+  RotateCcw,
+  Wallet,
+  X,
+} from 'lucide-react-native';
 
 const StatusBar = ExpoStatusBar as React.ComponentType<
   React.ComponentProps<typeof ExpoStatusBar> & { backgroundColor?: string }
@@ -18,7 +29,8 @@ const StatusBar = ExpoStatusBar as React.ComponentType<
 import { ActionModal } from '@/components/ActionModal';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
-import { Colors, Palette, Spacing, Typography } from '@/constants/theme';
+import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { BillsScreenProps, Tagihan, TagihanCardProps } from '@/types';
 
@@ -53,32 +65,123 @@ function formatDueDate(isoString: string): string {
   }
 }
 
+function getCardStyle(
+  styles: ReturnType<typeof getStyles>,
+  isPaid: boolean,
+  isOverdue: boolean,
+  isDueSoon: boolean,
+) {
+  if (isPaid) return styles.cardPaid;
+  if (isOverdue) return styles.cardOverdue;
+  if (isDueSoon) return styles.cardDueSoon;
+  return styles.cardNormal;
+}
+
+function getBillIconStyle(
+  styles: ReturnType<typeof getStyles>,
+  isPaid: boolean,
+  isOverdue: boolean,
+  isDueSoon: boolean,
+) {
+  if (isPaid) return styles.billIconPaid;
+  if (isOverdue) return styles.billIconOverdue;
+  if (isDueSoon) return styles.billIconDueSoon;
+  return styles.billIconNormal;
+}
+
+function getBillIconColor(
+  colors: ReturnType<typeof useTheme>,
+  isPaid: boolean,
+  isOverdue: boolean,
+  isDueSoon: boolean,
+) {
+  if (isPaid) return colors.textMuted;
+  if (isOverdue) return colors.danger;
+  if (isDueSoon) return colors.warning;
+  return colors.accent;
+}
+
+function getAmountStyle(
+  styles: ReturnType<typeof getStyles>,
+  isPaid: boolean,
+  isOverdue: boolean,
+) {
+  if (isPaid) return styles.amountTextPaid;
+  if (isOverdue) return styles.amountTextOverdue;
+  return styles.amountTextActive;
+}
+
+function getPayVariant(
+  isOverdue: boolean,
+  isDueSoon: boolean,
+): 'danger' | 'primary' | 'outline' {
+  if (isOverdue) return 'danger';
+  if (isDueSoon) return 'primary';
+  return 'outline';
+}
+
 function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
+  const colors = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const daysRemaining = calculateDaysRemaining(tagihan.dueDate);
   const isOverdue = !tagihan.isPaid && daysRemaining < 0;
   const isDueSoon = !tagihan.isPaid && daysRemaining >= 0 && daysRemaining <= 3;
-  const isWarning = isOverdue || isDueSoon;
 
-  const cardStyle = tagihan.isPaid
-    ? styles.cardPaid
-    : isWarning
-    ? styles.cardWarning
-    : styles.cardNormal;
+  const cardStyle = getCardStyle(styles, tagihan.isPaid, isOverdue, isDueSoon);
+  const billIconStyle = getBillIconStyle(styles, tagihan.isPaid, isOverdue, isDueSoon);
+  const billIconColor = getBillIconColor(colors, tagihan.isPaid, isOverdue, isDueSoon);
+  const amountStyle = getAmountStyle(styles, tagihan.isPaid, isOverdue);
+  const payVariant = getPayVariant(isOverdue, isDueSoon);
 
-  const textColor = isWarning ? Palette.black : tagihan.isPaid ? Palette.gray500 : Palette.white;
-  const mutedTextColor = isWarning ? Palette.gray700 : tagihan.isPaid ? Palette.gray600 : Palette.gray400;
-
-  const renderBadgeText = () => {
+  const renderBadge = () => {
     if (tagihan.isPaid) {
-      return '[ PAID ]';
+      return (
+        <View style={styles.badgePaid}>
+          <CheckCircle2 size={12} color={colors.success} />
+          <ThemedText variant="caption" weight="bold" style={styles.badgeTextPaid}>
+            PAID
+          </ThemedText>
+        </View>
+      );
     }
     if (isOverdue) {
-      return `[ OVERDUE ${Math.abs(daysRemaining)}D ]`;
+      return (
+        <View style={styles.badgeOverdue}>
+          <AlertCircle size={12} color={colors.danger} />
+          <ThemedText variant="caption" weight="bold" style={styles.badgeTextOverdue}>
+            {`OVERDUE ${Math.abs(daysRemaining)}D`}
+          </ThemedText>
+        </View>
+      );
     }
     if (daysRemaining === 0) {
-      return '[ DUE TODAY ]';
+      return (
+        <View style={styles.badgeDueSoon}>
+          <Clock size={12} color={colors.warning} />
+          <ThemedText variant="caption" weight="bold" style={styles.badgeTextDueSoon}>
+            DUE TODAY
+          </ThemedText>
+        </View>
+      );
     }
-    return `[ DUE IN ${daysRemaining}D ]`;
+    if (isDueSoon) {
+      return (
+        <View style={styles.badgeDueSoon}>
+          <Clock size={12} color={colors.warning} />
+          <ThemedText variant="caption" weight="bold" style={styles.badgeTextDueSoon}>
+            {`DUE IN ${daysRemaining}D`}
+          </ThemedText>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.badgeNormal}>
+        <Calendar size={12} color={colors.textSecondary} />
+        <ThemedText variant="caption" style={styles.badgeTextNormal}>
+          {`IN ${daysRemaining}D`}
+        </ThemedText>
+      </View>
+    );
   };
 
   return (
@@ -88,59 +191,66 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
     >
       <View style={styles.cardHeader}>
         <View style={styles.cardTitleBox}>
-          <ThemedText
-            weight="bold"
-            style={[styles.cardTitle, { color: textColor }]}
-          >
-            {tagihan.title.toUpperCase()}
-          </ThemedText>
-          {tagihan.isRecurring && (
-            <ThemedText
-              variant="caption"
-              style={[styles.recurringLabel, { color: mutedTextColor }]}
+          <View style={styles.titleIconRow}>
+            <View
+              style={[
+                styles.billIconBox,
+                billIconStyle,
+              ]}
             >
-              {`// RECURRING: ${tagihan.frequency ?? 'MONTHLY'}`}
-            </ThemedText>
-          )}
+              <Receipt
+                size={16}
+                color={billIconColor}
+              />
+            </View>
+            <View style={styles.titleTextContainer}>
+              <ThemedText
+                weight="bold"
+                style={[
+                  styles.cardTitle,
+                  tagihan.isPaid && styles.titlePaidText,
+                ]}
+              >
+                {tagihan.title.toUpperCase()}
+              </ThemedText>
+              {tagihan.isRecurring && (
+                <View style={styles.recurringBox}>
+                  <RotateCcw size={10} color={colors.textSecondary} />
+                  <ThemedText variant="caption" style={styles.recurringLabel}>
+                    {tagihan.frequency ?? 'MONTHLY'}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
 
-        <View
-          style={[
-            styles.badgeContainer,
-            isWarning && styles.badgeContainerWarning,
-            tagihan.isPaid && styles.badgeContainerPaid,
-          ]}
-        >
-          <ThemedText
-            variant="caption"
-            weight="bold"
-            style={[
-              styles.badgeText,
-              isWarning ? styles.badgeTextWarning : tagihan.isPaid ? styles.badgeTextPaid : styles.badgeTextNormal,
-            ]}
-          >
-            {renderBadgeText()}
-          </ThemedText>
-        </View>
+        {renderBadge()}
       </View>
 
-      <View style={[styles.cardDivider, isWarning ? styles.dividerWarning : styles.dividerNormal]} />
+      <View style={styles.cardDivider} />
 
       <View style={styles.cardBody}>
         <View>
-          <ThemedText variant="caption" style={{ color: mutedTextColor }}>
+          <ThemedText variant="caption" style={styles.amountLabel}>
             AMOUNT DUE
           </ThemedText>
-          <ThemedText variant="amount" style={[styles.amountText, { color: textColor }]}>
+          <ThemedText
+            variant="amount"
+            style={[
+              styles.amountText,
+              amountStyle,
+            ]}
+          >
             {formatCurrency(tagihan.amount)}
           </ThemedText>
         </View>
 
         {!tagihan.isPaid && onPayPress && (
           <ThemedButton
-            title="PAY"
+            title="PAY NOW"
             size="sm"
-            variant={isWarning ? 'secondary' : 'primary'}
+            variant={payVariant}
             onPress={() => onPayPress(tagihan)}
             style={styles.payButton}
           />
@@ -148,15 +258,21 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
       </View>
 
       <View style={styles.cardFooter}>
-        <ThemedText variant="caption" style={{ color: mutedTextColor }}>
-          {`DEADLINE: ${formatDueDate(tagihan.dueDate)}`}
-        </ThemedText>
+        <View style={styles.footerDateRow}>
+          <Clock size={12} color={colors.textMuted} />
+          <ThemedText variant="caption" style={styles.footerDateText}>
+            {`Deadline: ${formatDueDate(tagihan.dueDate)}`}
+          </ThemedText>
+        </View>
       </View>
     </Animated.View>
   );
 }
 
 export default function BillsScreen({ onBack }: BillsScreenProps) {
+  const colors = useTheme();
+  const themeMode = useFinanceStore((state) => state.themeMode);
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const { tagihans, kantongs, isLoading, loadTagihans, loadInitialData, payTagihan } =
     useFinanceStore();
 
@@ -246,43 +362,52 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
     <View style={styles.headerSection}>
       <View style={styles.appBar}>
         {onBack ? (
-          <Pressable onPress={onBack} style={styles.navButton}>
+          <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
+            <ArrowLeft size={16} color={colors.text} />
             <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-              [ &larr; DASHBOARD ]
+              DASHBOARD
             </ThemedText>
           </Pressable>
         ) : (
-          <ThemedText variant="caption" style={styles.appBarTitle}>
+          <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
             MONOCASH // BILLS
           </ThemedText>
         )}
-        <ThemedText variant="caption" style={styles.activeTag}>
-          {`TOTAL: ${tagihans.length}`}
-        </ThemedText>
+        <View style={styles.countBadge}>
+          <ThemedText variant="caption" style={styles.activeTag}>
+            {`TOTAL: ${tagihans.length}`}
+          </ThemedText>
+        </View>
       </View>
 
       <View style={styles.summaryBox}>
         <ThemedText variant="caption" style={styles.summaryLabel}>
           TOTAL UNPAID OBLIGATIONS
         </ThemedText>
-        <ThemedText variant="title" style={styles.summaryAmount}>
+        <ThemedText variant="amount" style={styles.summaryAmount}>
           {formatCurrency(totalUnpaidAmount)}
         </ThemedText>
         <View style={styles.metaRow}>
-          <ThemedText variant="caption" style={styles.metaWarning}>
-            {`OVERDUE: ${overdueCount}`}
-          </ThemedText>
-          <ThemedText variant="caption" style={styles.metaAlert}>
-            {`DUE <= 3D: ${upcomingCount}`}
-          </ThemedText>
+          <View style={styles.metaBadgeOverdue}>
+            <AlertCircle size={12} color={colors.danger} />
+            <ThemedText variant="caption" weight="bold" style={styles.metaWarning}>
+              {`OVERDUE: ${overdueCount}`}
+            </ThemedText>
+          </View>
+          <View style={styles.metaBadgeDueSoon}>
+            <Clock size={12} color={colors.warning} />
+            <ThemedText variant="caption" weight="bold" style={styles.metaAlert}>
+              {`DUE <= 3D: ${upcomingCount}`}
+            </ThemedText>
+          </View>
         </View>
       </View>
 
       <View style={styles.actionButtonsRow}>
         <ThemedButton
-          title="+ TAGIHAN"
+          title="+ NEW BILL OBLIGATION"
           variant="primary"
-          size="sm"
+          size="md"
           style={styles.actionButton}
           onPress={() => setIsActionModalOpen(true)}
         />
@@ -303,18 +428,21 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
     if (isLoading) {
       return (
         <View style={styles.emptyContainer}>
-          <ThemedText variant="caption">LOADING BILLS DATA...</ThemedText>
+          <ThemedText variant="caption" style={styles.emptySubtext}>
+            LOADING BILLS DATA...
+          </ThemedText>
         </View>
       );
     }
 
     return (
       <View style={styles.emptyContainer}>
-        <ThemedText variant="caption" style={styles.emptyText}>
+        <CheckCircle2 size={36} color={colors.success} />
+        <ThemedText weight="bold" style={styles.emptyText}>
           NO BILLS RECORDED
         </ThemedText>
         <ThemedText variant="caption" style={styles.emptySubtext}>
-          ALL OBLIGATIONS ARE CLEARED
+          All financial obligations are clear and up to date.
         </ThemedText>
       </View>
     );
@@ -322,7 +450,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
-      <StatusBar backgroundColor="#000000" style="light" />
+      <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
 
       <FlatList
         data={sortedTagihans}
@@ -337,12 +465,13 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor={Palette.white}
-            colors={[Palette.black]}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
           />
         }
       />
@@ -367,37 +496,48 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
           />
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <ThemedText weight="bold" style={styles.modalTitle}>
-                // CONFIRM BILL PAYMENT
-              </ThemedText>
-              <Pressable onPress={() => setSelectedTagihan(null)}>
-                <ThemedText variant="caption">[ ESC ]</ThemedText>
+              <View style={styles.modalHeaderTitleRow}>
+                <Receipt size={18} color={colors.accent} />
+                <ThemedText weight="bold" style={styles.modalTitle}>
+                  CONFIRM BILL PAYMENT
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={() => setSelectedTagihan(null)}
+                style={styles.modalCloseButton}
+                hitSlop={8}
+              >
+                <X size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
 
             {selectedTagihan && (
               <View style={styles.modalContent}>
-                <ThemedText variant="caption" style={styles.modalLabel}>
-                  BILL TITLE
-                </ThemedText>
-                <ThemedText weight="bold" style={styles.modalValue}>
-                  {selectedTagihan.title.toUpperCase()}
-                </ThemedText>
+                <View style={styles.modalSummaryBox}>
+                  <ThemedText variant="caption" style={styles.modalLabel}>
+                    BILL TITLE
+                  </ThemedText>
+                  <ThemedText weight="bold" style={styles.modalValue}>
+                    {selectedTagihan.title.toUpperCase()}
+                  </ThemedText>
+
+                  <ThemedText variant="caption" style={styles.modalLabel}>
+                    AMOUNT DUE
+                  </ThemedText>
+                  <ThemedText variant="amount" style={styles.modalPriceValue}>
+                    {formatCurrency(selectedTagihan.amount)}
+                  </ThemedText>
+                </View>
 
                 <ThemedText variant="caption" style={styles.modalLabel}>
-                  AMOUNT
-                </ThemedText>
-                <ThemedText variant="amount" style={styles.modalValue}>
-                  {formatCurrency(selectedTagihan.amount)}
-                </ThemedText>
-
-                <ThemedText variant="caption" style={styles.modalLabel}>
-                  DEDUCT FROM KANTONG
+                  SELECT KANTONG FOR DEDUCTION
                 </ThemedText>
                 {kantongs.length === 0 ? (
-                  <ThemedText variant="caption" style={styles.noKantongText}>
-                    NO KANTONG AVAILABLE. CREATE ONE FIRST.
-                  </ThemedText>
+                  <View style={styles.noKantongNotice}>
+                    <ThemedText variant="caption" style={styles.noKantongText}>
+                      No kantong available. Create one first.
+                    </ThemedText>
+                  </View>
                 ) : (
                   <ScrollView
                     horizontal
@@ -415,6 +555,10 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
                             isSelected && styles.kantongOptionSelected,
                           ]}
                         >
+                          <Wallet
+                            size={14}
+                            color={isSelected ? Palette.pureWhite : colors.textSecondary}
+                          />
                           <ThemedText
                             variant="caption"
                             weight={isSelected ? 'bold' : 'regular'}
@@ -431,7 +575,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
                   </ScrollView>
                 )}
 
-                {payError && (
+                {Boolean(payError) && (
                   <View style={styles.payErrorBox}>
                     <ThemedText variant="caption" style={styles.payErrorText}>
                       {payError}
@@ -448,6 +592,12 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
                     loading={isPaying}
                     onPress={handleConfirmPayment}
                   />
+                  <ThemedButton
+                    title="CANCEL"
+                    variant="outline"
+                    size="md"
+                    onPress={() => setSelectedTagihan(null)}
+                  />
                 </View>
               </View>
             )}
@@ -458,285 +608,461 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Palette.black,
-  },
-  listContent: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.six,
-  },
-  headerSection: {
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
-  },
-  appBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: Spacing.two,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray800,
-    marginBottom: Spacing.three,
-  },
-  appBarTitle: {
-    letterSpacing: 1.5,
-    color: Palette.white,
-    fontWeight: Typography.weight.semibold,
-  },
-  navButton: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    backgroundColor: Colors.dark.backgroundElement,
-  },
-  navButtonText: {
-    color: Palette.white,
-    letterSpacing: 1,
-  },
-  activeTag: {
-    color: Palette.gray400,
-  },
-  summaryBox: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: Spacing.three,
-    marginBottom: Spacing.three,
-  },
-  summaryLabel: {
-    color: Palette.gray400,
-    letterSpacing: 1,
-    marginBottom: Spacing.half,
-  },
-  summaryAmount: {
-    fontSize: Typography.scale['3xl'].fontSize,
-    lineHeight: Typography.scale['3xl'].lineHeight,
-    color: Palette.white,
-    marginBottom: Spacing.two,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: Palette.gray800,
-    paddingTop: Spacing.one,
-  },
-  metaWarning: {
-    color: Palette.white,
-    fontWeight: Typography.weight.bold,
-  },
-  metaAlert: {
-    color: Palette.gray400,
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    marginBottom: Spacing.four,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: Spacing.one,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray700,
-    marginBottom: Spacing.two,
-  },
-  sectionTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.sm.fontSize,
-    letterSpacing: 1,
-  },
-  sectionCount: {
-    color: Palette.gray400,
-  },
-  cardContainer: {
-    borderWidth: 1,
-    padding: Spacing.three,
-    marginBottom: Spacing.two,
-  },
-  cardNormal: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-  },
-  cardWarning: {
-    backgroundColor: Palette.white,
-    borderColor: Palette.white,
-  },
-  cardPaid: {
-    backgroundColor: '#0A0A0A',
-    borderColor: Palette.gray800,
-    opacity: 0.7,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  cardTitleBox: {
-    flex: 1,
-    marginRight: Spacing.two,
-  },
-  cardTitle: {
-    fontSize: Typography.scale.base.fontSize,
-    letterSpacing: 0.5,
-  },
-  recurringLabel: {
-    fontSize: Typography.scale.xs.fontSize,
-    marginTop: 2,
-  },
-  badgeContainer: {
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-  },
-  badgeContainerWarning: {
-    backgroundColor: Palette.black,
-    borderColor: Palette.black,
-  },
-  badgeContainerPaid: {
-    borderColor: Palette.gray800,
-    backgroundColor: 'transparent',
-  },
-  badgeText: {
-    fontSize: Typography.scale.xs.fontSize,
-    letterSpacing: 0.5,
-  },
-  badgeTextNormal: {
-    color: Palette.white,
-  },
-  badgeTextWarning: {
-    color: Palette.white,
-  },
-  badgeTextPaid: {
-    color: Palette.gray500,
-  },
-  cardDivider: {
-    height: 1,
-    marginVertical: Spacing.two,
-  },
-  dividerNormal: {
-    backgroundColor: Palette.gray800,
-  },
-  dividerWarning: {
-    backgroundColor: Palette.gray300,
-  },
-  cardBody: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: Spacing.one,
-  },
-  amountText: {
-    fontSize: Typography.scale.xl.fontSize,
-    lineHeight: Typography.scale.xl.lineHeight,
-  },
-  payButton: {
-    minHeight: 32,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-  },
-  cardFooter: {
-    marginTop: Spacing.one,
-  },
-  emptyContainer: {
-    padding: Spacing.six,
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.two,
-  },
-  emptyText: {
-    color: Palette.gray300,
-    marginBottom: Spacing.half,
-  },
-  emptySubtext: {
-    color: Palette.gray600,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-  },
-  modalSheet: {
-    backgroundColor: Palette.black,
-    borderTopWidth: 1,
-    borderColor: Palette.white,
-    paddingBottom: Spacing.six,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray800,
-  },
-  modalTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.sm.fontSize,
-    letterSpacing: 1,
-  },
-  modalContent: {
-    padding: Spacing.three,
-    gap: Spacing.two,
-  },
-  modalLabel: {
-    color: Palette.gray400,
-    fontSize: Typography.scale.xs.fontSize,
-    letterSpacing: 1,
-    marginTop: Spacing.one,
-  },
-  modalValue: {
-    color: Palette.white,
-  },
-  kantongSelectRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    paddingVertical: Spacing.one,
-  },
-  kantongOption: {
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    backgroundColor: Colors.dark.backgroundElement,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.two * 1.5,
-  },
-  kantongOptionSelected: {
-    backgroundColor: Palette.white,
-    borderColor: Palette.white,
-  },
-  kantongOptionText: {
-    color: Palette.white,
-  },
-  kantongOptionTextSelected: {
-    color: Palette.black,
-  },
-  noKantongText: {
-    color: Palette.gray500,
-  },
-  payErrorBox: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Palette.white,
-    padding: Spacing.two,
-    marginTop: Spacing.one,
-  },
-  payErrorText: {
-    color: Palette.white,
-  },
-  modalActions: {
-    marginTop: Spacing.three,
-  },
-});
+const getStyles = (colors: ColorTheme) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    listContent: {
+      paddingHorizontal: Spacing.three,
+      paddingBottom: Spacing.six,
+    },
+    headerSection: {
+      paddingTop: Spacing.two,
+      paddingBottom: Spacing.three,
+    },
+    appBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: Spacing.two,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+      marginBottom: Spacing.three,
+    },
+    appBarTitle: {
+      letterSpacing: 1,
+      color: colors.text,
+    },
+    navButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one * 1.5,
+      paddingVertical: Spacing.one,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    navButtonText: {
+      color: colors.text,
+      letterSpacing: 0.5,
+    },
+    countBadge: {
+      paddingVertical: 2,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    activeTag: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    summaryBox: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.xl,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: Spacing.three * 1.25,
+      marginBottom: Spacing.three,
+    },
+    summaryLabel: {
+      color: colors.textSecondary,
+      letterSpacing: 0.8,
+      marginBottom: Spacing.one,
+      textTransform: 'uppercase',
+    },
+    summaryAmount: {
+      fontSize: Typography.scale['3xl'].fontSize,
+      lineHeight: Typography.scale['3xl'].lineHeight,
+      color: colors.text,
+      marginBottom: Spacing.three,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+      paddingTop: Spacing.two,
+    },
+    metaBadgeOverdue: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      paddingVertical: 4,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.25)',
+    },
+    metaWarning: {
+      color: colors.danger,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    metaBadgeDueSoon: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(245, 158, 11, 0.12)',
+      paddingVertical: 4,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.25)',
+    },
+    metaAlert: {
+      color: colors.warning,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    actionButtonsRow: {
+      flexDirection: 'row',
+      marginBottom: Spacing.three,
+    },
+    actionButton: {
+      flex: 1,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: Spacing.one,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+      marginBottom: Spacing.two,
+    },
+    sectionTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 0.5,
+    },
+    sectionCount: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    cardContainer: {
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      padding: Spacing.three,
+      marginBottom: Spacing.two * 1.5,
+    },
+    cardNormal: {
+      backgroundColor: colors.card,
+      borderColor: colors.cardBorder,
+    },
+    cardOverdue: {
+      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+      borderColor: 'rgba(239, 68, 68, 0.4)',
+    },
+    cardDueSoon: {
+      backgroundColor: 'rgba(245, 158, 11, 0.08)',
+      borderColor: 'rgba(245, 158, 11, 0.4)',
+    },
+    cardPaid: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.cardBorder,
+      opacity: 0.75,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    cardTitleBox: {
+      flex: 1,
+      marginRight: Spacing.two,
+    },
+    titleIconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    billIconBox: {
+      width: 34,
+      height: 34,
+      borderRadius: BorderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    billIconNormal: {
+      backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    },
+    billIconOverdue: {
+      backgroundColor: 'rgba(239, 68, 68, 0.16)',
+    },
+    billIconDueSoon: {
+      backgroundColor: 'rgba(245, 158, 11, 0.16)',
+    },
+    billIconPaid: {
+      backgroundColor: colors.backgroundSelected,
+    },
+    titleTextContainer: {
+      flex: 1,
+    },
+    cardTitle: {
+      fontSize: Typography.scale.base.fontSize,
+      color: colors.text,
+      letterSpacing: 0.3,
+    },
+    titlePaidText: {
+      color: colors.textSecondary,
+      textDecorationLine: 'line-through',
+    },
+    recurringBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 2,
+    },
+    recurringLabel: {
+      fontSize: Typography.scale.xs.fontSize,
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+    },
+    badgePaid: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingVertical: 3,
+      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+    },
+    badgeTextPaid: {
+      color: colors.success,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    badgeOverdue: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+      paddingVertical: 3,
+      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.4)',
+    },
+    badgeTextOverdue: {
+      color: colors.danger,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    badgeDueSoon: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+      paddingVertical: 3,
+      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.4)',
+    },
+    badgeTextDueSoon: {
+      color: colors.warning,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    badgeNormal: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.backgroundSelected,
+      paddingVertical: 3,
+      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    badgeTextNormal: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    cardDivider: {
+      height: 1,
+      backgroundColor: colors.cardBorder,
+      marginVertical: Spacing.two,
+    },
+    cardBody: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    amountLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      marginBottom: 2,
+    },
+    amountText: {
+      fontSize: Typography.scale.xl.fontSize,
+      lineHeight: Typography.scale.xl.lineHeight,
+    },
+    amountTextActive: {
+      color: colors.text,
+    },
+    amountTextOverdue: {
+      color: colors.danger,
+    },
+    amountTextPaid: {
+      color: colors.textMuted,
+    },
+    payButton: {
+      minWidth: 90,
+    },
+    cardFooter: {
+      marginTop: Spacing.two,
+    },
+    footerDateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    footerDateText: {
+      color: colors.textMuted,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    emptyContainer: {
+      padding: Spacing.six,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: Spacing.three,
+      gap: Spacing.two,
+    },
+    emptyText: {
+      color: colors.text,
+      fontSize: Typography.scale.base.fontSize,
+    },
+    emptySubtext: {
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    modalBackdrop: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    },
+    modalSheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: BorderRadius['2xl'],
+      borderTopRightRadius: BorderRadius['2xl'],
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      paddingBottom: Spacing.six,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: Spacing.three,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    modalHeaderTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    modalTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 0.5,
+    },
+    modalCloseButton: {
+      width: 32,
+      height: 32,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalContent: {
+      padding: Spacing.three,
+      gap: Spacing.two,
+    },
+    modalSummaryBox: {
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.three,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      textTransform: 'uppercase',
+      marginTop: Spacing.one,
+    },
+    modalValue: {
+      color: colors.text,
+      fontSize: Typography.scale.base.fontSize,
+      marginBottom: Spacing.two,
+    },
+    modalPriceValue: {
+      color: colors.accent,
+      fontSize: Typography.scale.xl.fontSize,
+      lineHeight: Typography.scale.xl.lineHeight,
+    },
+    noKantongNotice: {
+      padding: Spacing.two,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    noKantongText: {
+      color: colors.textMuted,
+    },
+    kantongSelectRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+      paddingVertical: Spacing.half,
+    },
+    kantongOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one * 1.5,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.backgroundSelected,
+      paddingVertical: Spacing.one * 1.5,
+      paddingHorizontal: Spacing.two * 1.5,
+      borderRadius: BorderRadius.full,
+    },
+    kantongOptionSelected: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    kantongOptionText: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    kantongOptionTextSelected: {
+      color: Palette.pureWhite,
+    },
+    payErrorBox: {
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      borderRadius: BorderRadius.md,
+      padding: Spacing.two,
+    },
+    payErrorText: {
+      color: colors.danger,
+    },
+    modalActions: {
+      gap: Spacing.two,
+      marginTop: Spacing.two,
+    },
+  });

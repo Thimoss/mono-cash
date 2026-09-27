@@ -1,14 +1,7 @@
-/**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
- */
+import { Colors, ColorTheme } from '@/constants/theme';
+import { useFinanceStore } from '@/store/useFinanceStore';
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
-
-  return Colors[theme];
+export function useTheme(): ColorTheme {
+  const themeMode = useFinanceStore((state) => state.themeMode);
+  return (Colors[themeMode] ?? Colors.dark) as ColorTheme;
 }

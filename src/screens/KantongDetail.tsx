@@ -15,7 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
-import { Colors, MonospaceFamily, Palette, Spacing, Typography } from '@/constants/theme';
+import { BorderRadius, ColorTheme, MonospaceFamily, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { KantongDetailProps, Transaksi } from '@/types';
 
@@ -41,6 +42,9 @@ function formatDate(isoString: string): string {
 }
 
 export default function KantongDetail({ kantongId, onBack }: KantongDetailProps) {
+  const colors = useTheme();
+  const themeMode = useFinanceStore((state) => state.themeMode);
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const { kantongs, transaksis, updateKantong, deleteKantong } = useFinanceStore();
 
   const kantong = useMemo(
@@ -99,8 +103,8 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
       return;
     }
 
-    const parsedBalance = parseFloat(editBalance.replace(/[^0-9.-]+/g, ''));
-    if (isNaN(parsedBalance)) {
+    const parsedBalance = Number.parseFloat(editBalance.replace(/[^0-9.-]+/g, ''));
+    if (Number.isNaN(parsedBalance)) {
       setEditError('ERROR: ENTER A VALID NUMERIC BALANCE');
       return;
     }
@@ -141,7 +145,10 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
   if (!kantong) {
     return (
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
-        <StatusBar backgroundColor="#000000" style="light" />
+        <StatusBar
+          backgroundColor={colors.background}
+          style={themeMode === 'light' ? 'dark' : 'light'}
+        />
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.backButton}>
             <ThemedText variant="caption" weight="bold">
@@ -151,7 +158,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
         </View>
         <View style={styles.notFoundContainer}>
           <ThemedText weight="bold" style={styles.notFoundTitle}>
-            // KANTONG NOT FOUND
+            {'// KANTONG NOT FOUND'}
           </ThemedText>
           <ThemedText variant="caption" style={styles.notFoundDesc}>
             This envelope may have been deleted or removed from SQLite.
@@ -175,7 +182,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
         <View style={styles.overviewTopRow}>
           <View style={styles.nameTag}>
             <ThemedText variant="caption" style={styles.nameTagText}>
-              // ENVELOPE
+              {'// ENVELOPE'}
             </ThemedText>
           </View>
           <ThemedText variant="caption" style={styles.idText}>
@@ -304,7 +311,10 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
-      <StatusBar backgroundColor="#000000" style="light" />
+      <StatusBar
+        backgroundColor={colors.background}
+        style={themeMode === 'light' ? 'dark' : 'light'}
+      />
 
       {/* Top App Bar */}
       <View style={styles.appBar}>
@@ -342,7 +352,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
             <View style={styles.modalContainer}>
               <View style={styles.modalHeader}>
                 <ThemedText weight="bold" style={styles.modalTitle}>
-                  // EDIT KANTONG
+                  {'// EDIT KANTONG'}
                 </ThemedText>
                 <Pressable onPress={() => setIsEditModalVisible(false)} style={styles.modalCloseBtn}>
                   <ThemedText variant="caption">[ ESC ]</ThemedText>
@@ -350,7 +360,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
               </View>
 
               <ScrollView contentContainerStyle={styles.modalBody}>
-                {editError && (
+                {Boolean(editError) && (
                   <View style={styles.errorBox}>
                     <ThemedText variant="caption" style={styles.errorText}>
                       {editError}
@@ -365,7 +375,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="e.g. TABUNGAN"
-                  placeholderTextColor={Palette.gray600}
+                  placeholderTextColor={colors.textSecondary}
                   style={styles.modalInput}
                   autoCapitalize="characters"
                 />
@@ -377,7 +387,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
                   value={editBalance}
                   onChangeText={setEditBalance}
                   placeholder="0"
-                  placeholderTextColor={Palette.gray600}
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   style={styles.modalInput}
                 />
@@ -427,7 +437,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
             </View>
 
             <View style={styles.modalBody}>
-              {deleteError && (
+              {Boolean(deleteError) && (
                 <View style={styles.errorBox}>
                   <ThemedText variant="caption" style={styles.errorText}>
                     {deleteError}
@@ -469,325 +479,336 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Palette.black,
-  },
-  appBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray800,
-    backgroundColor: Palette.black,
-  },
-  appBarTitle: {
-    color: Palette.gray400,
-    letterSpacing: 1,
-  },
-  backButton: {
-    paddingVertical: Spacing.half,
-    paddingHorizontal: Spacing.one,
-  },
-  backText: {
-    color: Palette.white,
-    letterSpacing: 1,
-  },
-  listContent: {
-    padding: Spacing.three,
-    paddingBottom: Spacing.six,
-  },
-  headerContent: {
-    marginBottom: Spacing.three,
-  },
-  overviewCard: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: Spacing.three,
-    marginBottom: Spacing.three,
-  },
-  overviewTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.two,
-  },
-  nameTag: {
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    paddingHorizontal: Spacing.one * 1.5,
-    paddingVertical: Spacing.half,
-    backgroundColor: Palette.gray900,
-  },
-  nameTagText: {
-    color: Palette.gray400,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  idText: {
-    color: Palette.gray600,
-  },
-  kantongName: {
-    fontSize: Typography.scale['2xl'].fontSize,
-    lineHeight: Typography.scale['2xl'].lineHeight,
-    color: Palette.white,
-    marginBottom: Spacing.two,
-    letterSpacing: 0.5,
-  },
-  balanceSection: {
-    marginBottom: Spacing.two,
-  },
-  balanceLabel: {
-    color: Palette.gray500,
-    fontSize: Typography.scale.xs.fontSize,
-    letterSpacing: 1,
-    marginBottom: Spacing.half,
-  },
-  balanceAmount: {
-    fontSize: Typography.scale['3xl'].fontSize,
-    lineHeight: Typography.scale['3xl'].lineHeight,
-    color: Palette.white,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Palette.gray800,
-    marginVertical: Spacing.two,
-  },
-  analyticsRow: {
-    flexDirection: 'row',
-    gap: Spacing.three,
-    marginBottom: Spacing.two,
-  },
-  analyticCol: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    backgroundColor: Palette.gray900,
-    padding: Spacing.two,
-  },
-  analyticLabel: {
-    color: Palette.gray500,
-    fontSize: Typography.scale.xs.fontSize,
-    marginBottom: Spacing.half,
-  },
-  analyticValue: {
-    color: Palette.white,
-    fontSize: Typography.scale.sm.fontSize,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.one,
-    borderTopWidth: 1,
-    borderTopColor: Palette.gray800,
-    marginBottom: Spacing.two * 1.5,
-  },
-  metaText: {
-    color: Palette.gray500,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  cardActionsRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  cardActionBtn: {
-    flex: 1,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: Spacing.one,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray700,
-    marginBottom: Spacing.two,
-  },
-  sectionTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.sm.fontSize,
-    letterSpacing: 1,
-  },
-  sectionCount: {
-    color: Palette.gray400,
-  },
-  txCard: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    padding: Spacing.two * 1.5,
-    marginBottom: Spacing.two,
-  },
-  txHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.one,
-  },
-  categoryBadge: {
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    paddingHorizontal: Spacing.one * 1.5,
-    paddingVertical: Spacing.half,
-    backgroundColor: Palette.black,
-  },
-  categoryBadgeText: {
-    color: Palette.gray300,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  txDate: {
-    color: Palette.gray500,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  txBodyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  txDescription: {
-    flex: 1,
-    color: Palette.white,
-    fontSize: Typography.scale.sm.fontSize,
-  },
-  txAmount: {
-    fontSize: Typography.scale.base.fontSize,
-  },
-  txAmountIncome: {
-    color: Palette.white,
-  },
-  txAmountExpense: {
-    color: Palette.gray300,
-  },
-  emptyContainer: {
-    padding: Spacing.four,
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    alignItems: 'center',
-    marginTop: Spacing.two,
-  },
-  emptyTitle: {
-    color: Palette.gray400,
-    letterSpacing: 1,
-    marginBottom: Spacing.one,
-  },
-  emptySubtitle: {
-    color: Palette.gray600,
-    textAlign: 'center',
-  },
-  notFoundContainer: {
-    flex: 1,
-    padding: Spacing.four,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notFoundTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.lg.fontSize,
-    marginBottom: Spacing.two,
-  },
-  notFoundDesc: {
-    color: Palette.gray400,
-    textAlign: 'center',
-    marginBottom: Spacing.four,
-  },
-  returnButton: {
-    minWidth: 200,
-  },
-  header: {
-    padding: Spacing.three,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.82)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.three,
-  },
-  keyboardAvoid: {
-    width: '100%',
-    maxWidth: 480,
-  },
-  modalContainer: {
-    width: '100%',
-    backgroundColor: Palette.black,
-    borderWidth: 1,
-    borderColor: Palette.white,
-    padding: Spacing.three,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray800,
-    paddingBottom: Spacing.two,
-    marginBottom: Spacing.two,
-  },
-  modalTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.md.fontSize,
-    letterSpacing: 1,
-  },
-  deleteModalTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.md.fontSize,
-    letterSpacing: 1,
-  },
-  modalCloseBtn: {
-    padding: Spacing.half,
-  },
-  modalBody: {
-    gap: Spacing.two,
-  },
-  modalFieldLabel: {
-    color: Palette.gray400,
-    fontSize: Typography.scale.xs.fontSize,
-    letterSpacing: 1,
-    marginTop: Spacing.one,
-  },
-  modalInput: {
-    fontFamily: MonospaceFamily,
-    fontSize: Typography.scale.base.fontSize,
-    color: Palette.white,
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two * 1.25,
-  },
-  modalActionsRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    marginTop: Spacing.three,
-  },
-  modalActionBtn: {
-    flex: 1,
-  },
-  errorBox: {
-    backgroundColor: Palette.black,
-    borderWidth: 1,
-    borderColor: Palette.white,
-    padding: Spacing.two,
-  },
-  errorText: {
-    color: Palette.white,
-    letterSpacing: 0.5,
-  },
-  warningMessage: {
-    color: Palette.white,
-    fontSize: Typography.scale.base.fontSize,
-    lineHeight: Typography.scale.base.lineHeight,
-    letterSpacing: 0.5,
-    marginVertical: Spacing.one,
-  },
-  warningSubMessage: {
-    color: Palette.gray400,
-    fontSize: Typography.scale.xs.fontSize,
-    lineHeight: Typography.scale.sm.lineHeight,
-    letterSpacing: 0.5,
-    marginBottom: Spacing.two,
-  },
-});
+const getStyles = (colors: ColorTheme) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    appBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    appBarTitle: {
+      color: colors.textSecondary,
+      letterSpacing: 1,
+    },
+    backButton: {
+      paddingVertical: Spacing.half,
+      paddingHorizontal: Spacing.one,
+    },
+    backText: {
+      color: colors.text,
+      letterSpacing: 1,
+    },
+    listContent: {
+      padding: Spacing.three,
+      paddingBottom: Spacing.six,
+    },
+    headerContent: {
+      marginBottom: Spacing.three,
+    },
+    overviewCard: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.three,
+      marginBottom: Spacing.three,
+    },
+    overviewTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.two,
+    },
+    nameTag: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: BorderRadius.sm,
+      paddingHorizontal: Spacing.one * 1.5,
+      paddingVertical: Spacing.half,
+      backgroundColor: colors.backgroundElement,
+    },
+    nameTagText: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    idText: {
+      color: colors.textSecondary,
+    },
+    kantongName: {
+      fontSize: Typography.scale['2xl'].fontSize,
+      lineHeight: Typography.scale['2xl'].lineHeight,
+      color: colors.text,
+      marginBottom: Spacing.two,
+      letterSpacing: 0.5,
+    },
+    balanceSection: {
+      marginBottom: Spacing.two,
+    },
+    balanceLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      letterSpacing: 1,
+      marginBottom: Spacing.half,
+    },
+    balanceAmount: {
+      fontSize: Typography.scale['3xl'].fontSize,
+      lineHeight: Typography.scale['3xl'].lineHeight,
+      color: colors.text,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: Spacing.two,
+    },
+    analyticsRow: {
+      flexDirection: 'row',
+      gap: Spacing.three,
+      marginBottom: Spacing.two,
+    },
+    analyticCol: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundElement,
+      padding: Spacing.two,
+    },
+    analyticLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      marginBottom: Spacing.half,
+    },
+    analyticValue: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: Spacing.one,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      marginBottom: Spacing.two * 1.5,
+    },
+    metaText: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    cardActionsRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+    },
+    cardActionBtn: {
+      flex: 1,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: Spacing.one,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      marginBottom: Spacing.two,
+    },
+    sectionTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 1,
+    },
+    sectionCount: {
+      color: colors.textSecondary,
+    },
+    txCard: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.two * 1.5,
+      marginBottom: Spacing.two,
+    },
+    txHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.one,
+    },
+    categoryBadge: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: BorderRadius.sm,
+      paddingHorizontal: Spacing.one * 1.5,
+      paddingVertical: Spacing.half,
+      backgroundColor: colors.backgroundElement,
+    },
+    categoryBadgeText: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    txDate: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    txBodyRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    txDescription: {
+      flex: 1,
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+    },
+    txAmount: {
+      fontSize: Typography.scale.base.fontSize,
+    },
+    txAmountIncome: {
+      color: colors.success,
+    },
+    txAmountExpense: {
+      color: colors.danger,
+    },
+    emptyContainer: {
+      padding: Spacing.four,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      marginTop: Spacing.two,
+    },
+    emptyTitle: {
+      color: colors.text,
+      letterSpacing: 1,
+      marginBottom: Spacing.one,
+    },
+    emptySubtitle: {
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    notFoundContainer: {
+      flex: 1,
+      padding: Spacing.four,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    notFoundTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.lg.fontSize,
+      marginBottom: Spacing.two,
+    },
+    notFoundDesc: {
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: Spacing.four,
+    },
+    returnButton: {
+      minWidth: 200,
+    },
+    header: {
+      padding: Spacing.three,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: Spacing.three,
+    },
+    keyboardAvoid: {
+      width: '100%',
+      maxWidth: 480,
+    },
+    modalContainer: {
+      width: '100%',
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.three,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingBottom: Spacing.two,
+      marginBottom: Spacing.two,
+    },
+    modalTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.md.fontSize,
+      letterSpacing: 1,
+    },
+    deleteModalTitle: {
+      color: colors.danger,
+      fontSize: Typography.scale.md.fontSize,
+      letterSpacing: 1,
+    },
+    modalCloseBtn: {
+      padding: Spacing.half,
+    },
+    modalBody: {
+      gap: Spacing.two,
+    },
+    modalFieldLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      letterSpacing: 1,
+      marginTop: Spacing.one,
+    },
+    modalInput: {
+      fontFamily: MonospaceFamily,
+      fontSize: Typography.scale.base.fontSize,
+      color: colors.text,
+      backgroundColor: colors.backgroundElement,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: BorderRadius.md,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two * 1.25,
+    },
+    modalActionsRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+      marginTop: Spacing.three,
+    },
+    modalActionBtn: {
+      flex: 1,
+    },
+    errorBox: {
+      backgroundColor: colors.backgroundElement,
+      borderWidth: 1,
+      borderColor: colors.danger,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.two,
+    },
+    errorText: {
+      color: colors.danger,
+      letterSpacing: 0.5,
+    },
+    warningMessage: {
+      color: colors.text,
+      fontSize: Typography.scale.base.fontSize,
+      lineHeight: Typography.scale.base.lineHeight,
+      letterSpacing: 0.5,
+      marginVertical: Spacing.one,
+    },
+    warningSubMessage: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      lineHeight: Typography.scale.sm.lineHeight,
+      letterSpacing: 0.5,
+      marginBottom: Spacing.two,
+    },
+  });

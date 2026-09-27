@@ -12,6 +12,17 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ExternalLink,
+  ImageIcon,
+  Plus,
+  RotateCcw,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react-native';
 
 const StatusBar = ExpoStatusBar as React.ComponentType<
   React.ComponentProps<typeof ExpoStatusBar> & { backgroundColor?: string }
@@ -20,7 +31,8 @@ const StatusBar = ExpoStatusBar as React.ComponentType<
 import { ActionModal } from '@/components/ActionModal';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
-import { Colors, Palette, Spacing, Typography } from '@/constants/theme';
+import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Wishlist, WishlistCardProps, WishlistScreenProps } from '@/types';
 
@@ -49,6 +61,8 @@ function WishlistCard({
   onToggleAchieve,
   onDelete,
 }: WishlistCardProps) {
+  const colors = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const isAffordable = totalBalance >= wishlist.price;
   const progressRatio = wishlist.price > 0 ? Math.min(1, totalBalance / wishlist.price) : 1;
   const progressPercent = Math.min(100, Math.round(progressRatio * 100));
@@ -59,9 +73,6 @@ function WishlistCard({
     : isAffordable
     ? styles.cardAffordable
     : styles.cardNormal;
-
-  const textColor = wishlist.isAchieved ? Palette.gray500 : Palette.white;
-  const mutedTextColor = wishlist.isAchieved ? Palette.gray600 : Palette.gray400;
 
   const handleOpenLink = () => {
     if (!wishlist.purchaseLink) return;
@@ -74,9 +85,10 @@ function WishlistCard({
   const renderBadge = () => {
     if (wishlist.isAchieved) {
       return (
-        <View style={[styles.badgeContainer, styles.badgeAchieved]}>
+        <View style={styles.badgeAchieved}>
+          <CheckCircle2 size={12} color={colors.success} />
           <ThemedText variant="caption" weight="bold" style={styles.badgeTextAchieved}>
-            [ ACHIEVED ]
+            ACHIEVED
           </ThemedText>
         </View>
       );
@@ -84,18 +96,19 @@ function WishlistCard({
 
     if (isAffordable) {
       return (
-        <View style={[styles.badgeContainer, styles.badgeAffordable]}>
+        <View style={styles.badgeAffordable}>
+          <Sparkles size={12} color={colors.success} />
           <ThemedText variant="caption" weight="bold" style={styles.badgeTextAffordable}>
-            [ READY TO BUY ]
+            READY TO BUY
           </ThemedText>
         </View>
       );
     }
 
     return (
-      <View style={styles.badgeContainer}>
-        <ThemedText variant="caption" weight="bold" style={styles.badgeTextNormal}>
-          {`[ ${progressPercent}% FUNDED ]`}
+      <View style={styles.badgeProgress}>
+        <ThemedText variant="caption" weight="bold" style={styles.badgeTextProgress}>
+          {`${progressPercent}% FUNDED`}
         </ThemedText>
       </View>
     );
@@ -113,14 +126,13 @@ function WishlistCard({
             weight="bold"
             style={[
               styles.cardTitle,
-              { color: textColor },
               wishlist.isAchieved && styles.titleAchieved,
             ]}
           >
             {wishlist.title.toUpperCase()}
           </ThemedText>
           {wishlist.description.trim().length > 0 && (
-            <ThemedText variant="caption" style={[styles.cardDescription, { color: mutedTextColor }]}>
+            <ThemedText variant="caption" style={styles.cardDescription}>
               {wishlist.description}
             </ThemedText>
           )}
@@ -144,38 +156,45 @@ function WishlistCard({
       {/* Price & Target Info */}
       <View style={styles.priceRow}>
         <View>
-          <ThemedText variant="caption" style={{ color: mutedTextColor }}>
+          <ThemedText variant="caption" style={styles.priceLabel}>
             TARGET PRICE
           </ThemedText>
-          <ThemedText variant="amount" style={[styles.amountText, { color: textColor }]}>
+          <ThemedText
+            variant="amount"
+            style={[
+              styles.amountText,
+              wishlist.isAchieved && styles.amountTextAchieved,
+            ]}
+          >
             {formatCurrency(wishlist.price)}
           </ThemedText>
         </View>
 
-        {wishlist.purchaseLink && (
-          <Pressable onPress={handleOpenLink} style={styles.linkButton}>
-            <ThemedText variant="caption" weight="bold" style={styles.linkText}>
-              [ LINK ↗ ]
+        {wishlist.purchaseLink ? (
+          <Pressable onPress={handleOpenLink} style={styles.linkButton} hitSlop={8}>
+            <ExternalLink size={13} color={colors.accent} />
+            <ThemedText variant="caption" weight="semibold" style={styles.linkText}>
+              STORE LINK
             </ThemedText>
           </Pressable>
-        )}
+        ) : null}
       </View>
 
-      {/* Stackup Comparison Bar against Total Kantong Balance */}
-      <View style={styles.stackupSection}>
-        <View style={styles.stackupHeader}>
-          <ThemedText variant="caption" style={{ color: mutedTextColor }}>
+      {/* Progress Bar & Stackup Comparison */}
+      <View style={styles.progressSection}>
+        <View style={styles.progressHeaderRow}>
+          <ThemedText variant="caption" style={styles.progressLabel}>
             {wishlist.isAchieved
-              ? `ACQUIRED ON: ${formatDate(wishlist.createdAt)}`
-              : `TOTAL KANTONG COVERAGE: ${progressPercent}%`}
+              ? `Acquired on ${formatDate(wishlist.createdAt)}`
+              : `Wallet Coverage: ${progressPercent}%`}
           </ThemedText>
           {!wishlist.isAchieved && (
             <ThemedText
               variant="caption"
               weight="bold"
-              style={{ color: isAffordable ? Palette.white : Palette.gray400 }}
+              style={isAffordable ? styles.fundedSuccessText : styles.deficitText}
             >
-              {isAffordable ? 'FULLY FUNDED' : `NEED ${formatCurrency(deficit)}`}
+              {isAffordable ? 'Fully Funded' : `Deficit: ${formatCurrency(deficit)}`}
             </ThemedText>
           )}
         </View>
@@ -197,9 +216,9 @@ function WishlistCard({
       <View style={styles.cardActionsRow}>
         {onToggleAchieve && (
           <ThemedButton
-            title={wishlist.isAchieved ? '[ UNCHECK ]' : '✓ MARK ACHIEVED'}
+            title={wishlist.isAchieved ? 'MARK AS UNFINISHED' : '✓ MARK ACHIEVED'}
             size="sm"
-            variant={wishlist.isAchieved ? 'ghost' : isAffordable ? 'primary' : 'outline'}
+            variant={wishlist.isAchieved ? 'ghost' : isAffordable ? 'success' : 'outline'}
             onPress={() => onToggleAchieve(wishlist)}
             style={styles.achieveButton}
           />
@@ -208,12 +227,10 @@ function WishlistCard({
         {onDelete && (
           <Pressable
             onPress={() => onDelete(wishlist)}
-            style={styles.deleteIconButton}
+            style={({ pressed }) => [styles.deleteIconButton, pressed && styles.deleteIconPressed]}
             hitSlop={8}
           >
-            <ThemedText variant="caption" style={styles.deleteIconText}>
-              [ DEL ]
-            </ThemedText>
+            <Trash2 size={16} color={colors.danger} />
           </Pressable>
         )}
       </View>
@@ -222,6 +239,9 @@ function WishlistCard({
 }
 
 export default function WishlistScreen({ onBack }: WishlistScreenProps) {
+  const colors = useTheme();
+  const themeMode = useFinanceStore((state) => state.themeMode);
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const {
     wishlists,
     kantongs,
@@ -311,19 +331,22 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
       {/* App Bar Navigation */}
       <View style={styles.appBar}>
         {onBack ? (
-          <Pressable onPress={onBack} style={styles.navButton}>
+          <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
+            <ArrowLeft size={16} color={colors.text} />
             <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-              [ &larr; DASHBOARD ]
+              DASHBOARD
             </ThemedText>
           </Pressable>
         ) : (
-          <ThemedText variant="caption" style={styles.appBarTitle}>
+          <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
             MONOCASH // WISHLIST
           </ThemedText>
         )}
-        <ThemedText variant="caption" style={styles.activeTag}>
-          {`TOTAL: ${wishlists.length}`}
-        </ThemedText>
+        <View style={styles.countBadge}>
+          <ThemedText variant="caption" style={styles.activeTag}>
+            {`TOTAL: ${wishlists.length}`}
+          </ThemedText>
+        </View>
       </View>
 
       {/* Aggregate Balance vs Wishlist Stackup Box */}
@@ -333,7 +356,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
             <ThemedText variant="caption" style={styles.summaryLabel}>
               AGGREGATED KANTONG BALANCE
             </ThemedText>
-            <ThemedText variant="title" style={styles.summaryAmount}>
+            <ThemedText variant="amount" style={styles.summaryAmount}>
               {formatCurrency(totalBalance)}
             </ThemedText>
           </View>
@@ -372,12 +395,12 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
 
         <View style={styles.summaryFooterRow}>
           <ThemedText variant="caption" style={styles.summaryFooterText}>
-            {`ACHIEVED: ${achievedCount} / ${wishlists.length}`}
+            {`Achieved: ${achievedCount} / ${wishlists.length}`}
           </ThemedText>
           <ThemedText variant="caption" style={styles.summaryFooterText}>
             {totalBalance >= totalTargetCost
-              ? 'STATUS: 100% COVERED'
-              : `DEFICIT: -${formatCurrency(totalTargetCost - totalBalance)}`}
+              ? 'Status: 100% Covered'
+              : `Deficit: -${formatCurrency(totalTargetCost - totalBalance)}`}
           </ThemedText>
         </View>
       </View>
@@ -385,9 +408,9 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
       {/* Action Button Row */}
       <View style={styles.actionButtonsRow}>
         <ThemedButton
-          title="+ WISHLIST"
+          title="+ NEW WISHLIST TARGET"
           variant="primary"
-          size="sm"
+          size="md"
           style={styles.actionButton}
           onPress={() => setIsActionModalOpen(true)}
         />
@@ -401,7 +424,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
         >
           <ThemedText
             variant="caption"
-            weight={activeFilter === 'ALL' ? 'bold' : 'regular'}
+            weight={activeFilter === 'ALL' ? 'bold' : 'medium'}
             style={activeFilter === 'ALL' ? styles.filterTextActive : styles.filterText}
           >
             {`ALL (${wishlists.length})`}
@@ -414,7 +437,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
         >
           <ThemedText
             variant="caption"
-            weight={activeFilter === 'PENDING' ? 'bold' : 'regular'}
+            weight={activeFilter === 'PENDING' ? 'bold' : 'medium'}
             style={activeFilter === 'PENDING' ? styles.filterTextActive : styles.filterText}
           >
             {`PENDING (${activeCount})`}
@@ -427,7 +450,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
         >
           <ThemedText
             variant="caption"
-            weight={activeFilter === 'ACHIEVED' ? 'bold' : 'regular'}
+            weight={activeFilter === 'ACHIEVED' ? 'bold' : 'medium'}
             style={activeFilter === 'ACHIEVED' ? styles.filterTextActive : styles.filterText}
           >
             {`ACHIEVED (${achievedCount})`}
@@ -451,18 +474,21 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
     if (isLoading) {
       return (
         <View style={styles.emptyContainer}>
-          <ThemedText variant="caption">LOADING WISHLIST ITEMS...</ThemedText>
+          <ThemedText variant="caption" style={styles.emptySubtext}>
+            LOADING WISHLIST ITEMS...
+          </ThemedText>
         </View>
       );
     }
 
     return (
       <View style={styles.emptyContainer}>
-        <ThemedText variant="caption" style={styles.emptyText}>
+        <Sparkles size={36} color={colors.accent} />
+        <ThemedText weight="bold" style={styles.emptyText}>
           NO WISHLIST ITEMS
         </ThemedText>
         <ThemedText variant="caption" style={styles.emptySubtext}>
-          DREAM BIG // ADD YOUR SAVINGS GOALS
+          Dream big — add your personal savings targets and desires.
         </ThemedText>
       </View>
     );
@@ -470,7 +496,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
-      <StatusBar backgroundColor="#000000" style="light" />
+      <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
 
       <FlatList
         data={filteredWishlists}
@@ -487,12 +513,13 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor={Palette.white}
-            colors={[Palette.black]}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
           />
         }
       />
@@ -517,11 +544,18 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
           />
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <ThemedText weight="bold" style={styles.modalTitle}>
-                // DELETE WISHLIST ITEM
-              </ThemedText>
-              <Pressable onPress={() => setItemToDelete(null)}>
-                <ThemedText variant="caption">[ ESC ]</ThemedText>
+              <View style={styles.modalHeaderTitleRow}>
+                <Trash2 size={18} color={colors.danger} />
+                <ThemedText weight="bold" style={styles.modalTitle}>
+                  DELETE WISHLIST ITEM
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={() => setItemToDelete(null)}
+                style={styles.modalCloseButton}
+                hitSlop={8}
+              >
+                <X size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
 
@@ -530,18 +564,20 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
                 <ThemedText variant="caption" style={styles.modalLabel}>
                   ARE YOU SURE YOU WANT TO DELETE:
                 </ThemedText>
-                <ThemedText weight="bold" style={styles.modalValue}>
-                  {itemToDelete.title.toUpperCase()}
-                </ThemedText>
-                <ThemedText variant="amount" style={styles.modalPrice}>
-                  {formatCurrency(itemToDelete.price)}
-                </ThemedText>
+                <View style={styles.deleteItemPreview}>
+                  <ThemedText weight="bold" style={styles.modalValue}>
+                    {itemToDelete.title.toUpperCase()}
+                  </ThemedText>
+                  <ThemedText variant="amount" style={styles.modalPrice}>
+                    {formatCurrency(itemToDelete.price)}
+                  </ThemedText>
+                </View>
 
                 <View style={styles.modalActions}>
                   <ThemedButton
                     title="DELETE ITEM"
-                    variant="primary"
-                    size="md"
+                    variant="danger"
+                    size="lg"
                     onPress={handleConfirmDelete}
                   />
                   <ThemedButton
@@ -549,7 +585,6 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
                     variant="outline"
                     size="md"
                     onPress={() => setItemToDelete(null)}
-                    style={styles.cancelButton}
                   />
                 </View>
               </View>
@@ -561,369 +596,471 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Palette.black,
-  },
-  listContent: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.six,
-  },
-  headerSection: {
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
-  },
-  appBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: Spacing.two,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray800,
-    marginBottom: Spacing.three,
-  },
-  appBarTitle: {
-    letterSpacing: 1.5,
-    color: Palette.white,
-    fontWeight: Typography.weight.semibold,
-  },
-  navButton: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    backgroundColor: Colors.dark.backgroundElement,
-  },
-  navButtonText: {
-    color: Palette.white,
-    letterSpacing: 1,
-  },
-  activeTag: {
-    color: Palette.gray400,
-  },
-  summaryBox: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: Spacing.three,
-    marginBottom: Spacing.three,
-  },
-  summaryTopRow: {
-    marginBottom: Spacing.two,
-  },
-  summaryLabel: {
-    color: Palette.gray400,
-    letterSpacing: 1,
-    marginBottom: Spacing.half,
-  },
-  summaryAmount: {
-    fontSize: Typography.scale['3xl'].fontSize,
-    lineHeight: Typography.scale['3xl'].lineHeight,
-    color: Palette.white,
-  },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: Palette.gray800,
-    marginVertical: Spacing.two,
-  },
-  summaryCompareRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.two,
-  },
-  compareItem: {
-    flex: 1,
-  },
-  compareItemRight: {
-    alignItems: 'flex-end',
-  },
-  compareLabel: {
-    color: Palette.gray400,
-    marginBottom: 2,
-  },
-  compareValue: {
-    color: Palette.white,
-    fontSize: Typography.scale.base.fontSize,
-  },
-  globalProgressBarTrack: {
-    height: 6,
-    backgroundColor: Palette.gray900,
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    marginBottom: Spacing.two,
-  },
-  globalProgressBarFill: {
-    height: '100%',
-    backgroundColor: Palette.white,
-  },
-  summaryFooterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: Spacing.one,
-    borderTopWidth: 1,
-    borderTopColor: Palette.gray800,
-  },
-  summaryFooterText: {
-    color: Palette.gray400,
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    marginBottom: Spacing.three,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    marginBottom: Spacing.three,
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.two,
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    backgroundColor: Colors.dark.backgroundElement,
-    alignItems: 'center',
-  },
-  filterTabActive: {
-    backgroundColor: Palette.white,
-    borderColor: Palette.white,
-  },
-  filterText: {
-    color: Palette.gray400,
-  },
-  filterTextActive: {
-    color: Palette.black,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: Spacing.one,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray700,
-    marginBottom: Spacing.two,
-  },
-  sectionTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.sm.fontSize,
-    letterSpacing: 1,
-  },
-  sectionCount: {
-    color: Palette.gray400,
-  },
-  cardContainer: {
-    borderWidth: 1,
-    padding: Spacing.three,
-    marginBottom: Spacing.two,
-  },
-  cardNormal: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-  },
-  cardAffordable: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Palette.white,
-  },
-  cardAchieved: {
-    backgroundColor: '#0A0A0A',
-    borderColor: Palette.gray800,
-    opacity: 0.75,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.two,
-  },
-  cardTitleBox: {
-    flex: 1,
-    marginRight: Spacing.two,
-  },
-  cardTitle: {
-    fontSize: Typography.scale.base.fontSize,
-    letterSpacing: 0.5,
-  },
-  titleAchieved: {
-    textDecorationLine: 'line-through',
-  },
-  cardDescription: {
-    marginTop: 4,
-  },
-  badgeContainer: {
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-  },
-  badgeAchieved: {
-    borderColor: Palette.gray800,
-    backgroundColor: 'transparent',
-  },
-  badgeAffordable: {
-    backgroundColor: Palette.white,
-    borderColor: Palette.white,
-  },
-  badgeTextNormal: {
-    color: Palette.gray300,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  badgeTextAchieved: {
-    color: Palette.gray500,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  badgeTextAffordable: {
-    color: Palette.black,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  imageWrapper: {
-    height: 120,
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    marginBottom: Spacing.two,
-    overflow: 'hidden',
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: Palette.gray800,
-    marginBottom: Spacing.two,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: Spacing.two,
-  },
-  amountText: {
-    fontSize: Typography.scale.xl.fontSize,
-    lineHeight: Typography.scale.xl.lineHeight,
-  },
-  linkButton: {
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-  },
-  linkText: {
-    color: Palette.white,
-  },
-  stackupSection: {
-    backgroundColor: '#050505',
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    padding: Spacing.two,
-    marginBottom: Spacing.two,
-  },
-  stackupHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.one,
-  },
-  progressBarTrack: {
-    height: 4,
-    backgroundColor: Palette.gray900,
-    borderWidth: 1,
-    borderColor: Palette.gray700,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: Palette.gray400,
-  },
-  progressBarFillComplete: {
-    backgroundColor: Palette.white,
-  },
-  cardActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  achieveButton: {
-    flex: 1,
-    minHeight: 32,
-    paddingVertical: 4,
-  },
-  deleteIconButton: {
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: Colors.dark.backgroundElement,
-  },
-  deleteIconText: {
-    color: Palette.gray500,
-  },
-  emptyContainer: {
-    padding: Spacing.six,
-    borderWidth: 1,
-    borderColor: Palette.gray800,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.two,
-  },
-  emptyText: {
-    color: Palette.gray300,
-    marginBottom: Spacing.half,
-  },
-  emptySubtext: {
-    color: Palette.gray600,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-  },
-  modalSheet: {
-    backgroundColor: Palette.black,
-    borderTopWidth: 1,
-    borderColor: Palette.white,
-    paddingBottom: Spacing.six,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.gray800,
-  },
-  modalTitle: {
-    color: Palette.white,
-    fontSize: Typography.scale.sm.fontSize,
-    letterSpacing: 1,
-  },
-  modalContent: {
-    padding: Spacing.three,
-    gap: Spacing.two,
-  },
-  modalLabel: {
-    color: Palette.gray400,
-    fontSize: Typography.scale.xs.fontSize,
-  },
-  modalValue: {
-    color: Palette.white,
-    fontSize: Typography.scale.base.fontSize,
-  },
-  modalPrice: {
-    color: Palette.white,
-    marginBottom: Spacing.two,
-  },
-  modalActions: {
-    gap: Spacing.two,
-    marginTop: Spacing.two,
-  },
-  cancelButton: {
-    marginTop: Spacing.half,
-  },
-});
+const getStyles = (colors: ColorTheme) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    listContent: {
+      paddingHorizontal: Spacing.three,
+      paddingBottom: Spacing.six,
+    },
+    headerSection: {
+      paddingTop: Spacing.two,
+      paddingBottom: Spacing.three,
+    },
+    appBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: Spacing.two,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+      marginBottom: Spacing.three,
+    },
+    appBarTitle: {
+      letterSpacing: 1,
+      color: colors.text,
+    },
+    navButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one * 1.5,
+      paddingVertical: Spacing.one,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    navButtonText: {
+      color: colors.text,
+      letterSpacing: 0.5,
+    },
+    countBadge: {
+      paddingVertical: 2,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    activeTag: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    summaryBox: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.xl,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: Spacing.three * 1.25,
+      marginBottom: Spacing.three,
+    },
+    summaryTopRow: {
+      marginBottom: Spacing.two,
+    },
+    summaryLabel: {
+      color: colors.textSecondary,
+      letterSpacing: 0.8,
+      marginBottom: Spacing.one,
+      textTransform: 'uppercase',
+    },
+    summaryAmount: {
+      fontSize: Typography.scale['3xl'].fontSize,
+      lineHeight: Typography.scale['3xl'].lineHeight,
+      color: colors.text,
+    },
+    summaryDivider: {
+      height: 1,
+      backgroundColor: colors.cardBorder,
+      marginVertical: Spacing.two,
+    },
+    summaryCompareRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.two,
+    },
+    compareItem: {
+      flex: 1,
+    },
+    compareItemRight: {
+      alignItems: 'flex-end',
+    },
+    compareLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      marginBottom: 2,
+      textTransform: 'uppercase',
+    },
+    compareValue: {
+      color: colors.text,
+      fontSize: Typography.scale.base.fontSize,
+    },
+    globalProgressBarTrack: {
+      height: 6,
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: BorderRadius.full,
+      marginBottom: Spacing.two,
+      overflow: 'hidden',
+    },
+    globalProgressBarFill: {
+      height: '100%',
+      backgroundColor: colors.accent,
+      borderRadius: BorderRadius.full,
+    },
+    summaryFooterRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: Spacing.one,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+    summaryFooterText: {
+      color: colors.textMuted,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    actionButtonsRow: {
+      flexDirection: 'row',
+      marginBottom: Spacing.three,
+    },
+    actionButton: {
+      flex: 1,
+    },
+    filterRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+      marginBottom: Spacing.three,
+    },
+    filterTab: {
+      flex: 1,
+      paddingVertical: Spacing.two,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+    },
+    filterTabActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    filterText: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    filterTextActive: {
+      color: Palette.pureWhite,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: Spacing.one,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+      marginBottom: Spacing.two,
+    },
+    sectionTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 0.5,
+    },
+    sectionCount: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    cardContainer: {
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      padding: Spacing.three,
+      marginBottom: Spacing.two * 1.5,
+    },
+    cardNormal: {
+      backgroundColor: colors.card,
+      borderColor: colors.cardBorder,
+    },
+    cardAffordable: {
+      backgroundColor: colors.card,
+      borderColor: 'rgba(16, 185, 129, 0.4)',
+    },
+    cardAchieved: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.cardBorder,
+      opacity: 0.75,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: Spacing.two,
+    },
+    cardTitleBox: {
+      flex: 1,
+      marginRight: Spacing.two,
+    },
+    cardTitle: {
+      fontSize: Typography.scale.base.fontSize,
+      color: colors.text,
+      letterSpacing: 0.3,
+    },
+    titleAchieved: {
+      color: colors.textSecondary,
+      textDecorationLine: 'line-through',
+    },
+    cardDescription: {
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    badgeAchieved: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingVertical: 3,
+      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+    },
+    badgeTextAchieved: {
+      color: colors.success,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    badgeAffordable: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(16, 185, 129, 0.15)',
+      paddingVertical: 3,
+      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.4)',
+    },
+    badgeTextAffordable: {
+      color: colors.success,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    badgeProgress: {
+      backgroundColor: colors.backgroundSelected,
+      paddingVertical: 3,
+      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    badgeTextProgress: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    imageWrapper: {
+      height: 140,
+      borderRadius: BorderRadius.md,
+      marginBottom: Spacing.two,
+      overflow: 'hidden',
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    cardImage: {
+      width: '100%',
+      height: '100%',
+    },
+    cardDivider: {
+      height: 1,
+      backgroundColor: colors.cardBorder,
+      marginBottom: Spacing.two,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      marginBottom: Spacing.two,
+    },
+    priceLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      marginBottom: 2,
+    },
+    amountText: {
+      fontSize: Typography.scale.xl.fontSize,
+      lineHeight: Typography.scale.xl.lineHeight,
+      color: colors.text,
+    },
+    amountTextAchieved: {
+      color: colors.textMuted,
+    },
+    linkButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 4,
+      paddingHorizontal: Spacing.two,
+    },
+    linkText: {
+      color: colors.accent,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    progressSection: {
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: Spacing.two,
+      marginBottom: Spacing.two,
+    },
+    progressHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.one,
+    },
+    progressLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    fundedSuccessText: {
+      color: colors.success,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    deficitText: {
+      color: colors.warning,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    progressBarTrack: {
+      height: 6,
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: BorderRadius.full,
+      overflow: 'hidden',
+    },
+    progressBarFill: {
+      height: '100%',
+      backgroundColor: colors.accent,
+      borderRadius: BorderRadius.full,
+    },
+    progressBarFillComplete: {
+      backgroundColor: colors.success,
+    },
+    cardActionsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    achieveButton: {
+      flex: 1,
+      minHeight: 36,
+    },
+    deleteIconButton: {
+      width: 36,
+      height: 36,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deleteIconPressed: {
+      opacity: 0.7,
+    },
+    emptyContainer: {
+      padding: Spacing.six,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: Spacing.three,
+      gap: Spacing.two,
+    },
+    emptyText: {
+      color: colors.text,
+      fontSize: Typography.scale.base.fontSize,
+    },
+    emptySubtext: {
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    modalBackdrop: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    },
+    modalSheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: BorderRadius['2xl'],
+      borderTopRightRadius: BorderRadius['2xl'],
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      paddingBottom: Spacing.six,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: Spacing.three,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    modalHeaderTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    modalTitle: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 0.5,
+    },
+    modalCloseButton: {
+      width: 32,
+      height: 32,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalContent: {
+      padding: Spacing.three,
+      gap: Spacing.two,
+    },
+    deleteItemPreview: {
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.three,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+      textTransform: 'uppercase',
+    },
+    modalValue: {
+      color: colors.text,
+      fontSize: Typography.scale.base.fontSize,
+      marginBottom: Spacing.one,
+    },
+    modalPrice: {
+      color: colors.danger,
+      fontSize: Typography.scale.xl.fontSize,
+      lineHeight: Typography.scale.xl.lineHeight,
+    },
+    modalActions: {
+      gap: Spacing.two,
+      marginTop: Spacing.two,
+    },
+  });
