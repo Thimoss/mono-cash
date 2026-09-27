@@ -31,6 +31,7 @@ import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { BillsScreenProps, Tagihan, TagihanCardProps } from '@/types';
 
@@ -122,6 +123,7 @@ function getPayVariant(
 
 function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const daysRemaining = calculateDaysRemaining(tagihan.dueDate);
   const isOverdue = !tagihan.isPaid && daysRemaining < 0;
@@ -139,7 +141,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
         <View style={styles.badgePaid}>
           <CheckCircle2 size={12} color={colors.success} />
           <ThemedText variant="caption" weight="bold" style={styles.badgeTextPaid}>
-            PAID
+            {t('billsPaid')}
           </ThemedText>
         </View>
       );
@@ -149,7 +151,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
         <View style={styles.badgeOverdue}>
           <AlertCircle size={12} color={colors.danger} />
           <ThemedText variant="caption" weight="bold" style={styles.badgeTextOverdue}>
-            {`OVERDUE ${Math.abs(daysRemaining)}D`}
+            {`${t('billsOverdue')} ${Math.abs(daysRemaining)}D`}
           </ThemedText>
         </View>
       );
@@ -159,7 +161,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
         <View style={styles.badgeDueSoon}>
           <Clock size={12} color={colors.warning} />
           <ThemedText variant="caption" weight="bold" style={styles.badgeTextDueSoon}>
-            DUE TODAY
+            {t('billsDueToday')}
           </ThemedText>
         </View>
       );
@@ -169,7 +171,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
         <View style={styles.badgeDueSoon}>
           <Clock size={12} color={colors.warning} />
           <ThemedText variant="caption" weight="bold" style={styles.badgeTextDueSoon}>
-            {`DUE IN ${daysRemaining}D`}
+            {`${t('billsDueSoon')} ${daysRemaining}D`}
           </ThemedText>
         </View>
       );
@@ -233,7 +235,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
       <View style={styles.cardBody}>
         <View>
           <ThemedText variant="caption" style={styles.amountLabel}>
-            AMOUNT DUE
+            {t('billsAmountDue')}
           </ThemedText>
           <ThemedText
             variant="amount"
@@ -248,7 +250,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
 
         {!tagihan.isPaid && onPayPress && (
           <ThemedButton
-            title="PAY NOW"
+            title={t('billsPayNow')}
             size="sm"
             variant={payVariant}
             onPress={() => onPayPress(tagihan)}
@@ -261,7 +263,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
         <View style={styles.footerDateRow}>
           <Clock size={12} color={colors.textMuted} />
           <ThemedText variant="caption" style={styles.footerDateText}>
-            {`Deadline: ${formatDueDate(tagihan.dueDate)}`}
+            {`${t('billsDeadline')}: ${formatDueDate(tagihan.dueDate)}`}
           </ThemedText>
         </View>
       </View>
@@ -272,6 +274,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
 export default function BillsScreen({ onBack }: BillsScreenProps) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
+  const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const { tagihans, kantongs, isLoading, loadTagihans, loadInitialData, payTagihan } =
     useFinanceStore();
@@ -341,7 +344,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
 
   const handleConfirmPayment = async () => {
     if (!selectedTagihan || !selectedKantongId) {
-      setPayError('SELECT A KANTONG FOR DEDUCTION');
+      setPayError(t('errSelectKantong'));
       return;
     }
 
@@ -365,24 +368,24 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
           <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
             <ArrowLeft size={16} color={colors.text} />
             <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-              DASHBOARD
+              {t('navDashboard').toUpperCase()}
             </ThemedText>
           </Pressable>
         ) : (
           <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
-            MONOCASH // BILLS
+            {t('billsPageTitle')}
           </ThemedText>
         )}
         <View style={styles.countBadge}>
           <ThemedText variant="caption" style={styles.activeTag}>
-            {`TOTAL: ${tagihans.length}`}
+            {`${t('dashboardTotal').toUpperCase()}: ${tagihans.length}`}
           </ThemedText>
         </View>
       </View>
 
       <View style={styles.summaryBox}>
         <ThemedText variant="caption" style={styles.summaryLabel}>
-          TOTAL UNPAID OBLIGATIONS
+          {t('billsTotalUnpaid')}
         </ThemedText>
         <ThemedText variant="amount" style={styles.summaryAmount}>
           {formatCurrency(totalUnpaidAmount)}
@@ -391,13 +394,13 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
           <View style={styles.metaBadgeOverdue}>
             <AlertCircle size={12} color={colors.danger} />
             <ThemedText variant="caption" weight="bold" style={styles.metaWarning}>
-              {`OVERDUE: ${overdueCount}`}
+              {`${t('billsOverdue')}: ${overdueCount}`}
             </ThemedText>
           </View>
           <View style={styles.metaBadgeDueSoon}>
             <Clock size={12} color={colors.warning} />
             <ThemedText variant="caption" weight="bold" style={styles.metaAlert}>
-              {`DUE <= 3D: ${upcomingCount}`}
+              {`${t('billsDueSoon')} 3D: ${upcomingCount}`}
             </ThemedText>
           </View>
         </View>
@@ -405,7 +408,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
 
       <View style={styles.actionButtonsRow}>
         <ThemedButton
-          title="+ NEW BILL OBLIGATION"
+          title={t('billsNewBill')}
           variant="primary"
           size="md"
           style={styles.actionButton}
@@ -415,10 +418,10 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
 
       <View style={styles.sectionHeaderRow}>
         <ThemedText weight="bold" style={styles.sectionTitle}>
-          UPCOMING BILLS SCHEDULE
+          {t('billsScheduleTitle')}
         </ThemedText>
         <ThemedText variant="caption" style={styles.sectionCount}>
-          PRIORITY SORT
+          {t('billsPrioritySort')}
         </ThemedText>
       </View>
     </View>
@@ -429,7 +432,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
       return (
         <View style={styles.emptyContainer}>
           <ThemedText variant="caption" style={styles.emptySubtext}>
-            LOADING BILLS DATA...
+            {t('billsLoading')}
           </ThemedText>
         </View>
       );
@@ -439,10 +442,10 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
       <View style={styles.emptyContainer}>
         <CheckCircle2 size={36} color={colors.success} />
         <ThemedText weight="bold" style={styles.emptyText}>
-          NO BILLS RECORDED
+          {t('billsNoBills')}
         </ThemedText>
         <ThemedText variant="caption" style={styles.emptySubtext}>
-          All financial obligations are clear and up to date.
+          {t('billsNoBillsDesc')}
         </ThemedText>
       </View>
     );
@@ -499,7 +502,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
               <View style={styles.modalHeaderTitleRow}>
                 <Receipt size={18} color={colors.accent} />
                 <ThemedText weight="bold" style={styles.modalTitle}>
-                  CONFIRM BILL PAYMENT
+                  {t('billsConfirmPayment')}
                 </ThemedText>
               </View>
               <Pressable
@@ -515,14 +518,14 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
               <View style={styles.modalContent}>
                 <View style={styles.modalSummaryBox}>
                   <ThemedText variant="caption" style={styles.modalLabel}>
-                    BILL TITLE
+                    {t('modalBillTitle')}
                   </ThemedText>
                   <ThemedText weight="bold" style={styles.modalValue}>
                     {selectedTagihan.title.toUpperCase()}
                   </ThemedText>
 
                   <ThemedText variant="caption" style={styles.modalLabel}>
-                    AMOUNT DUE
+                    {t('billsAmountDue')}
                   </ThemedText>
                   <ThemedText variant="amount" style={styles.modalPriceValue}>
                     {formatCurrency(selectedTagihan.amount)}
@@ -530,12 +533,12 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
                 </View>
 
                 <ThemedText variant="caption" style={styles.modalLabel}>
-                  SELECT KANTONG FOR DEDUCTION
+                  {t('billsSelectKantong')}
                 </ThemedText>
                 {kantongs.length === 0 ? (
                   <View style={styles.noKantongNotice}>
                     <ThemedText variant="caption" style={styles.noKantongText}>
-                      No kantong available. Create one first.
+                      {t('modalNoKantong')}
                     </ThemedText>
                   </View>
                 ) : (
@@ -585,7 +588,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
 
                 <View style={styles.modalActions}>
                   <ThemedButton
-                    title="CONFIRM & PAY"
+                    title={t('billsConfirmPay')}
                     variant="primary"
                     size="lg"
                     disabled={kantongs.length === 0}
@@ -593,7 +596,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
                     onPress={handleConfirmPayment}
                   />
                   <ThemedButton
-                    title="CANCEL"
+                    title={t('billsCancel')}
                     variant="outline"
                     size="md"
                     onPress={() => setSelectedTagihan(null)}

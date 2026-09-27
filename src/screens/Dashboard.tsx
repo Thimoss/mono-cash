@@ -30,6 +30,7 @@ import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { ActionModalMode, DashboardProps, KantongCardProps } from '@/types';
 
@@ -70,6 +71,7 @@ function getKantongIcon(name: string) {
 
 function KantongCard({ kantong, index, onPress }: KantongCardProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const IconComponent = getKantongIcon(kantong.name);
 
@@ -93,7 +95,7 @@ function KantongCard({ kantong, index, onPress }: KantongCardProps) {
                 {kantong.name}
               </ThemedText>
               <ThemedText variant="caption" style={styles.cardIndex}>
-                {`Envelopes #${String(index + 1).padStart(2, '0')}`}
+                {`${t('dashboardEnvelopeIndex')} #${String(index + 1).padStart(2, '0')}`}
               </ThemedText>
             </View>
           </View>
@@ -106,7 +108,7 @@ function KantongCard({ kantong, index, onPress }: KantongCardProps) {
 
         <View style={styles.cardBody}>
           <ThemedText variant="caption" style={styles.balanceLabel}>
-            Available Balance
+            {t('dashboardAvailableBalance')}
           </ThemedText>
           <ThemedText variant="amount" style={styles.cardBalance}>
             {formatCurrency(kantong.balance)}
@@ -116,7 +118,7 @@ function KantongCard({ kantong, index, onPress }: KantongCardProps) {
         <View style={styles.cardFooter}>
           <Clock size={12} color={colors.textSecondary} />
           <ThemedText variant="caption" style={styles.cardDate}>
-            {`Updated: ${formatDate(kantong.updatedAt)}`}
+            {`${t('dashboardUpdated')}: ${formatDate(kantong.updatedAt)}`}
           </ThemedText>
         </View>
       </Pressable>
@@ -132,6 +134,7 @@ export default function Dashboard({
 }: DashboardProps) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
+  const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const { kantongs, isLoading, loadInitialData, exportFinanceData } = useFinanceStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -153,7 +156,7 @@ export default function Dashboard({
       const result = await exportFinanceData();
       setIsExporting(false);
       if (result.success) {
-        setExportFeedback('Backup ready. Native share dialog opened.');
+        setExportFeedback(t('dashboardBackupReady'));
         setTimeout(() => {
           setExportFeedback(null);
         }, 4500);
@@ -202,10 +205,10 @@ export default function Dashboard({
           </View>
           <View>
             <ThemedText weight="bold" style={styles.appBarTitle}>
-              MonoCash
+              {t('appName')}
             </ThemedText>
             <ThemedText variant="caption" style={styles.appBarSubtitle}>
-              Neo-Fintech Core
+              {t('appSubtitle')}
             </ThemedText>
           </View>
         </View>
@@ -215,7 +218,7 @@ export default function Dashboard({
             <Pressable onPress={onNavigateBills} style={styles.navButton}>
               <Receipt size={14} color={colors.textSecondary} />
               <ThemedText variant="caption" weight="semibold" style={styles.navButtonText}>
-                Bills
+                {t('navBills')}
               </ThemedText>
             </Pressable>
           )}
@@ -223,7 +226,7 @@ export default function Dashboard({
             <Pressable onPress={onNavigateWishlist} style={styles.navButton}>
               <Heart size={14} color={colors.textSecondary} />
               <ThemedText variant="caption" weight="semibold" style={styles.navButtonText}>
-                Wishlist
+                {t('navWishlist')}
               </ThemedText>
             </Pressable>
           )}
@@ -241,7 +244,7 @@ export default function Dashboard({
           <View style={styles.balanceBadge}>
             <View style={styles.livePulseDot} />
             <ThemedText variant="caption" weight="bold" style={styles.balanceBadgeText}>
-              TOTAL ASSETS
+              {t('dashboardTotalAssets')}
             </ThemedText>
           </View>
           <View style={styles.walletIconBox}>
@@ -250,7 +253,7 @@ export default function Dashboard({
         </View>
 
         <ThemedText variant="caption" style={styles.totalBalanceLabel}>
-          Net Aggregated Balance
+          {t('dashboardNetBalance')}
         </ThemedText>
         <ThemedText variant="title" style={styles.totalBalanceAmount}>
           {formatCurrency(totalBalance)}
@@ -260,12 +263,12 @@ export default function Dashboard({
           <View style={styles.metaItem}>
             <Folder size={14} color={colors.textSecondary} />
             <ThemedText variant="caption" style={styles.metaText}>
-              {`${kantongs.length} Active Envelopes`}
+              {`${kantongs.length} ${t('dashboardActiveEnvelopes')}`}
             </ThemedText>
           </View>
           <View style={styles.metaBadge}>
             <ThemedText variant="caption" weight="bold" style={styles.metaBadgeText}>
-              OFFLINE READY
+              {t('dashboardOfflineReady')}
             </ThemedText>
           </View>
         </View>
@@ -282,7 +285,7 @@ export default function Dashboard({
           <View style={styles.btnContentRow}>
             <Plus size={16} color={Palette.pureWhite} />
             <ThemedText weight="semibold" style={styles.btnPrimaryText}>
-              New Kantong
+              {t('dashboardNewKantong')}
             </ThemedText>
           </View>
         </ThemedButton>
@@ -296,7 +299,7 @@ export default function Dashboard({
           <View style={styles.btnContentRow}>
             <ArrowUpRight size={16} color={colors.text} />
             <ThemedText weight="semibold" style={styles.btnSecondaryText}>
-              Record Entry
+              {t('dashboardRecordEntry')}
             </ThemedText>
           </View>
         </ThemedButton>
@@ -305,10 +308,10 @@ export default function Dashboard({
       {/* Section Header */}
       <View style={styles.sectionHeaderRow}>
         <ThemedText weight="bold" style={styles.sectionHeaderTitle}>
-          Envelopes & Kantongs
+          {t('dashboardEnvelopesTitle')}
         </ThemedText>
         <ThemedText variant="caption" style={styles.sectionHeaderCount}>
-          {`${kantongs.length} Total`}
+          {`${kantongs.length} ${t('dashboardTotal')}`}
         </ThemedText>
       </View>
     </View>
@@ -329,10 +332,10 @@ export default function Dashboard({
           <Folder size={24} color={colors.textSecondary} />
         </View>
         <ThemedText weight="semibold" style={styles.emptyText}>
-          No Envelopes Created Yet
+          {t('dashboardNoEnvelopes')}
         </ThemedText>
         <ThemedText variant="caption" style={styles.emptySubtext}>
-          Tap "New Kantong" above to organize your cash envelopes.
+          {t('dashboardNoEnvelopesDesc')}
         </ThemedText>
       </View>
     );
@@ -345,26 +348,26 @@ export default function Dashboard({
           <View style={styles.utilityTitleGroup}>
             <Share2 size={16} color={colors.accent} />
             <ThemedText weight="bold" style={styles.utilityTitle}>
-              Data Backup & Utilities
+              {t('dashboardDataBackup')}
             </ThemedText>
           </View>
           <View style={styles.offlinePill}>
             <ThemedText variant="caption" weight="bold" style={styles.offlinePillText}>
-              OFFLINE
+              {t('dashboardOffline')}
             </ThemedText>
           </View>
         </View>
 
         <ThemedText variant="caption" style={styles.utilityDesc}>
-          Export all SQLite data (Kantongs, Transaksis, Tagihans, Wishlists) to RFC 4180 CSV format for local backup or sharing.
+          {t('dashboardExportDesc')}
         </ThemedText>
 
         <View style={styles.utilityMetaRow}>
           <ThemedText variant="caption" style={styles.utilityMeta}>
-            Engine: SQLite (WAL)
+            {t('dashboardEngineSqlite')}
           </ThemedText>
           <ThemedText variant="caption" style={styles.utilityMeta}>
-            Format: Standard CSV
+            {t('dashboardFormatCsv')}
           </ThemedText>
         </View>
 
@@ -378,7 +381,7 @@ export default function Dashboard({
           <View style={styles.btnContentRow}>
             <Share2 size={16} color={colors.text} />
             <ThemedText weight="semibold" style={styles.exportBtnText}>
-              {isExporting ? 'Exporting...' : 'Export Data (.CSV)'}
+              {isExporting ? t('dashboardExporting') : t('dashboardExportBtn')}
             </ThemedText>
           </View>
         </ThemedButton>
@@ -391,7 +394,7 @@ export default function Dashboard({
             <View style={styles.feedbackIconRow}>
               <CheckCircle2 size={16} color={colors.success} />
               <ThemedText weight="bold" style={styles.feedbackSuccessTitle}>
-                Backup Complete
+                {t('dashboardBackupComplete')}
               </ThemedText>
             </View>
             <ThemedText variant="caption" style={styles.feedbackSuccessText}>
@@ -408,7 +411,7 @@ export default function Dashboard({
             <View style={styles.feedbackIconRow}>
               <AlertCircle size={16} color={colors.danger} />
               <ThemedText weight="bold" style={styles.feedbackErrorTitle}>
-                Export Notice
+                {t('dashboardExportNotice')}
               </ThemedText>
             </View>
             <ThemedText variant="caption" style={styles.feedbackErrorText}>

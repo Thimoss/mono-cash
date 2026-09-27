@@ -7,6 +7,7 @@ import {
   ExportResult,
   FinanceState,
   Kantong,
+  Language,
   Tagihan,
   ThemeMode,
   Transaksi,
@@ -43,6 +44,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   tagihans: [],
   wishlists: [],
   themeMode: 'dark',
+  language: 'id',
   isLoading: false,
   error: null,
 
@@ -51,6 +53,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     set((state) => ({
       themeMode: state.themeMode === 'dark' ? 'light' : 'dark',
     })),
+
+  setLanguage: (lang: Language) => set({ language: lang }),
 
   resetAllData: async () => {
     set({ isLoading: true, error: null });

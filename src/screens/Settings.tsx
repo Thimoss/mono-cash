@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Database,
   Download,
+  Globe,
   Info,
   Moon,
   Palette as PaletteIcon,
@@ -33,8 +34,9 @@ import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { SettingsScreenProps, ThemeMode } from '@/types';
+import { Language, SettingsScreenProps, ThemeMode } from '@/types';
 
 export default function SettingsScreen({ onBack }: SettingsScreenProps) {
   const colors = useTheme();
@@ -47,9 +49,13 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
     wishlists,
     themeMode,
     setThemeMode,
+    language,
+    setLanguage,
     resetAllData,
     exportFinanceData,
   } = useFinanceStore();
+
+  const { t } = useTranslation();
 
   const [isResetModalVisible, setIsResetModalVisible] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -70,7 +76,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
       await resetAllData();
       setIsResetting(false);
       setIsResetModalVisible(false);
-      setResetFeedback('System database wiped & re-initialized successfully.');
+      setResetFeedback(t('settingsResetSuccess'));
       setTimeout(() => {
         setResetFeedback(null);
       }, 5000);
@@ -88,7 +94,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
       const result = await exportFinanceData();
       setIsExporting(false);
       if (result.success) {
-        setExportFeedback('Backup shared successfully // saved in local cache');
+        setExportFeedback(t('settingsExportSuccess'));
         setTimeout(() => setExportFeedback(null), 4000);
       }
     } catch {
@@ -107,12 +113,12 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
               <ArrowLeft size={16} color={colors.text} />
               <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-                DASHBOARD
+                {t('navDashboard').toUpperCase()}
               </ThemedText>
             </Pressable>
           )}
           <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
-            MONOCASH // SETTINGS
+            {t('settingsPageTitle')}
           </ThemedText>
         </View>
         <View style={styles.versionBadge}>
@@ -133,7 +139,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             <CheckCircle2 size={18} color={colors.success} />
             <View style={styles.feedbackTextWrapper}>
               <ThemedText weight="bold" style={styles.feedbackSuccessTitle}>
-                Database Reset Complete
+                {t('settingsResetComplete')}
               </ThemedText>
               <ThemedText variant="caption" style={styles.feedbackSuccessText}>
                 {resetFeedback}
@@ -150,10 +156,10 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             </View>
             <View style={styles.sectionTitleWrapper}>
               <ThemedText weight="bold" style={styles.sectionTitle}>
-                THEME PREFERENCE
+                {t('settingsThemePreference')}
               </ThemedText>
               <ThemedText variant="caption" style={styles.sectionDesc}>
-                Personalize visual contrast and interface styling.
+                {t('settingsThemeDesc')}
               </ThemedText>
             </View>
           </View>
@@ -171,20 +177,20 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
                 <View style={styles.themeCardTitleRow}>
                   <Moon size={16} color={themeMode === 'dark' ? colors.accent : colors.textSecondary} />
                   <ThemedText weight="bold" style={styles.themeCardTitle}>
-                    NEO-FINTECH DARK
+                    {t('settingsNeoDark')}
                   </ThemedText>
                 </View>
                 {themeMode === 'dark' && (
                   <View style={styles.activePill}>
                     <Check size={11} color={Palette.pureWhite} />
                     <ThemedText variant="caption" weight="bold" style={styles.activePillText}>
-                      ACTIVE
+                      {t('settingsActive')}
                     </ThemedText>
                   </View>
                 )}
               </View>
               <ThemedText variant="caption" style={styles.themeCardDesc}>
-                Modern deep charcoal (#121214) with Indigo accents and vibrant functional badges.
+                {t('settingsNeoDarkDesc')}
               </ThemedText>
             </Pressable>
 
@@ -200,26 +206,77 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
                 <View style={styles.themeCardTitleRow}>
                   <Sun size={16} color={themeMode === 'light' ? colors.accent : colors.textSecondary} />
                   <ThemedText weight="bold" style={styles.themeCardTitle}>
-                    CLEAN LIGHT MONO
+                    {t('settingsCleanLight')}
                   </ThemedText>
                 </View>
                 {themeMode === 'light' && (
                   <View style={styles.activePill}>
                     <Check size={11} color={Palette.pureWhite} />
                     <ThemedText variant="caption" weight="bold" style={styles.activePillText}>
-                      ACTIVE
+                      {t('settingsActive')}
                     </ThemedText>
                   </View>
                 )}
               </View>
               <ThemedText variant="caption" style={styles.themeCardDesc}>
-                Soft bright canvas with crisp dark typography and high-readability borders.
+                {t('settingsCleanLightDesc')}
               </ThemedText>
             </Pressable>
           </View>
         </View>
 
-        {/* Section 2: System Diagnostics */}
+        {/* Section 2: Language */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconBox}>
+              <Globe size={16} color={colors.accent} />
+            </View>
+            <View style={styles.sectionTitleWrapper}>
+              <ThemedText weight="bold" style={styles.sectionTitle}>
+                {t('settingsLanguage')}
+              </ThemedText>
+              <ThemedText variant="caption" style={styles.sectionDesc}>
+                {t('settingsLanguageDesc')}
+              </ThemedText>
+            </View>
+          </View>
+
+          <View style={styles.themeOptionsRow}>
+            {(['id', 'en'] as Language[]).map((lang) => {
+              const isSelected = language === lang;
+              const label = lang === 'id' ? t('settingsLangId') : t('settingsLangEn');
+              return (
+                <Pressable
+                  key={lang}
+                  onPress={() => setLanguage(lang)}
+                  style={[
+                    styles.themeCard,
+                    isSelected && styles.themeCardActive,
+                  ]}
+                >
+                  <View style={styles.themeCardHeader}>
+                    <View style={styles.themeCardTitleRow}>
+                      <Globe size={16} color={isSelected ? colors.accent : colors.textSecondary} />
+                      <ThemedText weight="bold" style={styles.themeCardTitle}>
+                        {`[ ${lang.toUpperCase()} ] ${label}`}
+                      </ThemedText>
+                    </View>
+                    {isSelected && (
+                      <View style={styles.activePill}>
+                        <Check size={11} color={Palette.pureWhite} />
+                        <ThemedText variant="caption" weight="bold" style={styles.activePillText}>
+                          {t('settingsActive')}
+                        </ThemedText>
+                      </View>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Section 3: System Diagnostics */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionIconBox}>
@@ -227,10 +284,10 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             </View>
             <View style={styles.sectionTitleWrapper}>
               <ThemedText weight="bold" style={styles.sectionTitle}>
-                SYSTEM DIAGNOSTICS & TELEMETRY
+                {t('settingsDiagnostics')}
               </ThemedText>
               <ThemedText variant="caption" style={styles.sectionDesc}>
-                Local SQLite instance metrics and offline state.
+                {t('settingsDiagDesc')}
               </ThemedText>
             </View>
           </View>
@@ -238,10 +295,10 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
           <View style={styles.diagnosticsCard}>
             <View style={styles.diagRow}>
               <ThemedText variant="caption" style={styles.diagLabel}>
-                STORAGE ENGINE
+                {t('settingsStorageEngine')}
               </ThemedText>
               <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
-                SQLite (WAL MODE)
+                {t('settingsStorageValue')}
               </ThemedText>
             </View>
 
@@ -249,10 +306,10 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
             <View style={styles.diagRow}>
               <ThemedText variant="caption" style={styles.diagLabel}>
-                ENVELOPES (KANTONG)
+                {t('settingsEnvelopes')}
               </ThemedText>
               <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
-                {`${kantongs.length} Active`}
+                {`${kantongs.length} ${t('settingsActive_')}`}
               </ThemedText>
             </View>
 
@@ -260,10 +317,10 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
             <View style={styles.diagRow}>
               <ThemedText variant="caption" style={styles.diagLabel}>
-                TRANSACTIONS LOGGED
+                {t('settingsTransactions')}
               </ThemedText>
               <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
-                {`${transaksis.length} Records`}
+                {`${transaksis.length} ${t('settingsRecords')}`}
               </ThemedText>
             </View>
 
@@ -271,10 +328,10 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
             <View style={styles.diagRow}>
               <ThemedText variant="caption" style={styles.diagLabel}>
-                BILL OBLIGATIONS
+                {t('settingsBillObligations')}
               </ThemedText>
               <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
-                {`${tagihans.length} Scheduled`}
+                {`${tagihans.length} ${t('settingsScheduled')}`}
               </ThemedText>
             </View>
 
@@ -282,10 +339,10 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
             <View style={styles.diagRow}>
               <ThemedText variant="caption" style={styles.diagLabel}>
-                WISHLIST TARGETS
+                {t('settingsWishlistTargets')}
               </ThemedText>
               <ThemedText variant="caption" weight="bold" style={styles.diagValue}>
-                {`${wishlists.length} Goals`}
+                {`${wishlists.length} ${t('settingsGoals')}`}
               </ThemedText>
             </View>
 
@@ -293,19 +350,19 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
             <View style={styles.diagRow}>
               <ThemedText variant="caption" style={styles.diagLabel}>
-                CONNECTIVITY
+                {t('settingsConnectivity')}
               </ThemedText>
               <View style={styles.offlineBadge}>
                 <Zap size={11} color={colors.success} />
                 <ThemedText variant="caption" weight="bold" style={styles.offlineText}>
-                  100% OFFLINE (AIR-GAPPED)
+                  {t('settingsOfflineAirGapped')}
                 </ThemedText>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Section 3: Backup & Sharing */}
+        {/* Section 4: Backup & Sharing */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionIconBox}>
@@ -313,16 +370,16 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             </View>
             <View style={styles.sectionTitleWrapper}>
               <ThemedText weight="bold" style={styles.sectionTitle}>
-                DATA EXPORT UTILITY
+                {t('settingsDataExport')}
               </ThemedText>
               <ThemedText variant="caption" style={styles.sectionDesc}>
-                Export an RFC-4180 standard CSV backup of all SQLite tables.
+                {t('settingsExportDesc')}
               </ThemedText>
             </View>
           </View>
 
           <ThemedButton
-            title={isExporting ? 'GENERATING EXPORT...' : 'EXPORT BACKUP (.CSV)'}
+            title={isExporting ? t('settingsExportGenerating') : t('settingsExportBtn')}
             variant="outline"
             size="md"
             loading={isExporting}
@@ -335,7 +392,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
           )}
         </View>
 
-        {/* Section 4: Danger Zone (Reset Data) */}
+        {/* Section 5: Danger Zone (Reset Data) */}
         <View style={[styles.section, styles.dangerSection]}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.dangerIconBox}>
@@ -343,16 +400,16 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             </View>
             <View style={styles.sectionTitleWrapper}>
               <ThemedText weight="bold" style={styles.dangerTitle}>
-                DANGER ZONE // DATA RESET
+                {t('settingsDangerZone')}
               </ThemedText>
               <ThemedText variant="caption" style={styles.sectionDesc}>
-                Irreversibly wipe all local SQLite data and restore fresh defaults.
+                {t('settingsDangerDesc')}
               </ThemedText>
             </View>
           </View>
 
           <ThemedButton
-            title="PURGE & RESET ALL DATA"
+            title={t('settingsResetBtn')}
             variant="danger"
             size="lg"
             style={styles.resetButton}
@@ -378,7 +435,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
               <View style={styles.modalHeaderTitleRow}>
                 <Trash2 size={18} color={colors.danger} />
                 <ThemedText weight="bold" style={styles.modalWarningTitle}>
-                  CONFIRM DATA PURGE
+                  {t('settingsConfirmPurge')}
                 </ThemedText>
               </View>
               <Pressable
@@ -402,25 +459,25 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
               <View style={styles.warningAlertBox}>
                 <AlertTriangle size={20} color={colors.danger} />
                 <ThemedText weight="bold" style={styles.modalWarningHeadline}>
-                  ALL LOCAL SQLITE DATA WILL BE DESTROYED PERMANENTLY.
+                  {t('settingsResetWarning')}
                 </ThemedText>
               </View>
 
               <ThemedText variant="caption" style={styles.modalWarningDetail}>
-                This operation drops and re-creates all SQLite tables:
-                {'\n'}• All Envelopes & Kantong balances
-                {'\n'}• All Transaction records & category history
-                {'\n'}• All Bill obligations & scheduled reminders
-                {'\n'}• All Wishlist targets & attached photos
+                {t('settingsResetDetail')}
+                {'\n'}{t('settingsResetItem1')}
+                {'\n'}{t('settingsResetItem2')}
+                {'\n'}{t('settingsResetItem3')}
+                {'\n'}{t('settingsResetItem4')}
               </ThemedText>
 
               <ThemedText variant="caption" style={styles.modalWarningConfirm}>
-                This action is IRREVERSIBLE. Are you sure you want to proceed?
+                {t('settingsResetIrreversible')}
               </ThemedText>
 
               <View style={styles.modalActionsRow}>
                 <ThemedButton
-                  title="CANCEL"
+                  title={t('billsCancel')}
                   variant="outline"
                   size="md"
                   disabled={isResetting}
@@ -428,7 +485,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
                   onPress={() => setIsResetModalVisible(false)}
                 />
                 <ThemedButton
-                  title="CONFIRM WIPE ALL"
+                  title={t('settingsConfirmWipeAll')}
                   variant="danger"
                   size="md"
                   loading={isResetting}

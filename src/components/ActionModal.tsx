@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, {
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -42,6 +43,7 @@ import {
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { BorderRadius, ColorTheme, MonospaceFamily, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { ActionModalProps, TagihanFrequency, TransaksiType } from '@/types';
 import { ThemedButton } from './ThemedButton';
@@ -80,6 +82,82 @@ function getCategoryIcon(category: string, size = 15, color = '#6B7280') {
 
 export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
+
+  // Resolve all translated strings at the top component level (outside any worklet scope)
+  const strings = useMemo(
+    () => ({
+      // Errors
+      errKantongNameRequired: t('errKantongNameRequired'),
+      errFailedCreateKantong: t('errFailedCreateKantong'),
+      errSelectKantong: t('errSelectKantong'),
+      errAmountGreaterZero: t('errAmountGreaterZero'),
+      errDescriptionRequired: t('errDescriptionRequired'),
+      errFailedSubmitTransaction: t('errFailedSubmitTransaction'),
+      errBillTitleRequired: t('errBillTitleRequired'),
+      errDueDateRequired: t('errDueDateRequired'),
+      errInvalidDateFormat: t('errInvalidDateFormat'),
+      errFailedCreateBill: t('errFailedCreateBill'),
+      errPhotoAccess: t('errPhotoAccess'),
+      errFailedPickImage: t('errFailedPickImage'),
+      errWishlistTitleRequired: t('errWishlistTitleRequired'),
+      errPriceGreaterZero: t('errPriceGreaterZero'),
+      errFailedCreateWishlist: t('errFailedCreateWishlist'),
+
+      // Modal Headers
+      modalCreateKantong: t('modalCreateKantong'),
+      modalRecordTransaction: t('modalRecordTransaction'),
+      modalNewBill: t('modalNewBill'),
+      modalNewWishlist: t('modalNewWishlist'),
+
+      // Kantong Form
+      modalKantongName: t('modalKantongName'),
+      modalKantongNamePlaceholder: t('modalKantongNamePlaceholder'),
+      modalInitialBalance: t('modalInitialBalance'),
+      modalCreateKantongBtn: t('modalCreateKantongBtn'),
+
+      // Transaksi Form
+      modalSelectKantong: t('modalSelectKantong'),
+      modalNoKantong: t('modalNoKantong'),
+      modalTransactionType: t('modalTransactionType'),
+      modalExpense: t('modalExpense'),
+      modalIncome: t('modalIncome'),
+      modalCategory: t('modalCategory'),
+      modalAmountIdr: t('modalAmountIdr'),
+      modalDescription: t('modalDescription'),
+      modalDescPlaceholder: t('modalDescPlaceholder'),
+      modalSubmitTransaction: t('modalSubmitTransaction'),
+
+      // Tagihan Form
+      modalBillTitle: t('modalBillTitle'),
+      modalBillTitlePlaceholder: t('modalBillTitlePlaceholder'),
+      modalDueDate: t('modalDueDate'),
+      modalBillRecurrence: t('modalBillRecurrence'),
+      modalOneOff: t('modalOneOff'),
+      modalRecurring: t('modalRecurring'),
+      modalFrequency: t('modalFrequency'),
+      modalCreateBill: t('modalCreateBill'),
+
+      // Wishlist Form
+      modalTargetTitle: t('modalTargetTitle'),
+      modalTargetTitlePlaceholder: t('modalTargetTitlePlaceholder'),
+      modalDescOptional: t('modalDescOptional'),
+      modalDescOptionalPlaceholder: t('modalDescOptionalPlaceholder'),
+      modalTargetPrice: t('modalTargetPrice'),
+      modalImageAttachment: t('modalImageAttachment'),
+      modalImageAttached: t('modalImageAttached'),
+      modalChangeImage: t('modalChangeImage'),
+      modalRemoveImage: t('modalRemoveImage'),
+      modalPickImage: t('modalPickImage'),
+      modalImageUrlLabel: t('modalImageUrlLabel'),
+      modalImageUrlPlaceholder: t('modalImageUrlPlaceholder'),
+      modalPurchaseLink: t('modalPurchaseLink'),
+      modalPurchaseLinkPlaceholder: t('modalPurchaseLinkPlaceholder'),
+      modalCreateWishlistBtn: t('modalCreateWishlistBtn'),
+    }),
+    [t],
+  );
+
   const styles = useMemo(() => getStyles(colors), [colors]);
   const { kantongs, addKantong, addTransaksi, addTagihan, addWishlist } = useFinanceStore();
 
@@ -145,14 +223,14 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
     translateY.value = withTiming(SCREEN_HEIGHT, { duration: 200 }, (finished) => {
       'worklet';
       if (finished) {
-        onClose();
+        runOnJS(onClose)();
       }
     });
   };
 
   const handleCreateKantong = async () => {
     if (!kantongName.trim()) {
-      setErrorMessage('ERROR: KANTONG NAME IS REQUIRED');
+      setErrorMessage(strings.errKantongNameRequired);
       return;
     }
 
@@ -172,25 +250,25 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
       smoothClose();
     } catch (err) {
       setIsSubmitting(false);
-      const msg = err instanceof Error ? err.message : 'FAILED TO CREATE KANTONG';
+      const msg = err instanceof Error ? err.message : strings.errFailedCreateKantong;
       setErrorMessage(`ERROR: ${msg.toUpperCase()}`);
     }
   };
 
   const handleCreateTransaksi = async () => {
     if (!selectedKantongId) {
-      setErrorMessage('ERROR: SELECT A TARGET KANTONG');
+      setErrorMessage(strings.errSelectKantong);
       return;
     }
 
     const parsedAmount = Number.parseFloat(transaksiAmount.replace(/[^0-9.-]+/g, ''));
     if (!parsedAmount || parsedAmount <= 0) {
-      setErrorMessage('ERROR: AMOUNT MUST BE GREATER THAN 0');
+      setErrorMessage(strings.errAmountGreaterZero);
       return;
     }
 
     if (!transaksiDescription.trim()) {
-      setErrorMessage('ERROR: DESCRIPTION IS REQUIRED');
+      setErrorMessage(strings.errDescriptionRequired);
       return;
     }
 
@@ -214,32 +292,32 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
       smoothClose();
     } catch (err) {
       setIsSubmitting(false);
-      const msg = err instanceof Error ? err.message : 'FAILED TO SUBMIT TRANSAKSI';
+      const msg = err instanceof Error ? err.message : strings.errFailedSubmitTransaction;
       setErrorMessage(`ERROR: ${msg.toUpperCase()}`);
     }
   };
 
   const handleCreateTagihan = async () => {
     if (!tagihanTitle.trim()) {
-      setErrorMessage('ERROR: BILL TITLE IS REQUIRED');
+      setErrorMessage(strings.errBillTitleRequired);
       return;
     }
 
     const parsedAmount = Number.parseFloat(tagihanAmount.replace(/[^0-9.-]+/g, ''));
     if (!parsedAmount || parsedAmount <= 0) {
-      setErrorMessage('ERROR: AMOUNT MUST BE GREATER THAN 0');
+      setErrorMessage(strings.errAmountGreaterZero);
       return;
     }
 
     if (!tagihanDueDate.trim()) {
-      setErrorMessage('ERROR: DUE DATE IS REQUIRED (YYYY-MM-DD)');
+      setErrorMessage(strings.errDueDateRequired);
       return;
     }
 
     // Format validation: YYYY-MM-DD
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(tagihanDueDate.trim())) {
-      setErrorMessage('ERROR: INVALID DATE FORMAT (USE YYYY-MM-DD)');
+      setErrorMessage(strings.errInvalidDateFormat);
       return;
     }
 
@@ -263,7 +341,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
       smoothClose();
     } catch (err) {
       setIsSubmitting(false);
-      const msg = err instanceof Error ? err.message : 'FAILED TO CREATE BILL';
+      const msg = err instanceof Error ? err.message : strings.errFailedCreateBill;
       setErrorMessage(`ERROR: ${msg.toUpperCase()}`);
     }
   };
@@ -272,7 +350,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        setErrorMessage('ERROR: PHOTO LIBRARY ACCESS IS REQUIRED');
+        setErrorMessage(strings.errPhotoAccess);
         return;
       }
 
@@ -288,20 +366,20 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
         setErrorMessage(null);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'FAILED TO PICK IMAGE';
+      const msg = err instanceof Error ? err.message : strings.errFailedPickImage;
       setErrorMessage(`ERROR: ${msg.toUpperCase()}`);
     }
   };
 
   const handleCreateWishlist = async () => {
     if (!wishlistTitle.trim()) {
-      setErrorMessage('ERROR: WISHLIST TITLE IS REQUIRED');
+      setErrorMessage(strings.errWishlistTitleRequired);
       return;
     }
 
     const parsedPrice = Number.parseFloat(wishlistPrice.replace(/[^0-9.-]+/g, ''));
     if (!parsedPrice || parsedPrice <= 0) {
-      setErrorMessage('ERROR: PRICE MUST BE GREATER THAN 0');
+      setErrorMessage(strings.errPriceGreaterZero);
       return;
     }
 
@@ -326,7 +404,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
       smoothClose();
     } catch (err) {
       setIsSubmitting(false);
-      const msg = err instanceof Error ? err.message : 'FAILED TO CREATE WISHLIST TARGET';
+      const msg = err instanceof Error ? err.message : strings.errFailedCreateWishlist;
       setErrorMessage(`ERROR: ${msg.toUpperCase()}`);
     }
   };
@@ -340,17 +418,17 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
   }));
 
   const renderModalHeader = () => {
-    let title = 'CREATE KANTONG';
+    let title = strings.modalCreateKantong;
     let icon = <FolderPlus size={18} color={colors.accent} />;
 
     if (mode === 'TRANSAKSI') {
-      title = 'RECORD TRANSACTION';
+      title = strings.modalRecordTransaction;
       icon = <CreditCard size={18} color={colors.accent} />;
     } else if (mode === 'TAGIHAN') {
-      title = 'NEW BILL OBLIGATION';
+      title = strings.modalNewBill;
       icon = <Receipt size={18} color={colors.warning} />;
     } else if (mode === 'WISHLIST') {
-      title = 'NEW WISHLIST GOAL';
+      title = strings.modalNewWishlist;
       icon = <Sparkles size={18} color={colors.accent} />;
     }
 
@@ -412,19 +490,19 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
               {mode === 'KANTONG' && (
                 <View style={styles.formGroup}>
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    KANTONG NAME
+                    {strings.modalKantongName}
                   </ThemedText>
                   <TextInput
                     value={kantongName}
                     onChangeText={setKantongName}
-                    placeholder="e.g. TABUNGAN, OPERASIONAL, GAJI"
+                    placeholder={strings.modalKantongNamePlaceholder}
                     placeholderTextColor={colors.textSecondary}
                     style={styles.input}
                     autoCapitalize="characters"
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    INITIAL BALANCE (IDR)
+                    {strings.modalInitialBalance}
                   </ThemedText>
                   <TextInput
                     value={kantongBalance}
@@ -437,7 +515,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
 
                   <View style={styles.submitContainer}>
                     <ThemedButton
-                      title="CREATE KANTONG"
+                      title={strings.modalCreateKantongBtn}
                       variant="primary"
                       size="lg"
                       loading={isSubmitting}
@@ -451,12 +529,12 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                 <View style={styles.formGroup}>
                   {/* Kantong Selection */}
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    SELECT KANTONG
+                    {strings.modalSelectKantong}
                   </ThemedText>
                   {kantongs.length === 0 ? (
                     <View style={styles.noKantongNotice}>
                       <ThemedText variant="caption" style={styles.noKantongText}>
-                        No kantong available. Create one first.
+                        {strings.modalNoKantong}
                       </ThemedText>
                     </View>
                   ) : (
@@ -498,7 +576,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
 
                   {/* Transaction Type: Expense vs Income */}
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    TRANSACTION TYPE
+                    {strings.modalTransactionType}
                   </ThemedText>
                   <View style={styles.typeSelectorRow}>
                     <Pressable
@@ -524,7 +602,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                           transaksiType === 'EXPENSE' && styles.typeButtonTextSelected,
                         ]}
                       >
-                        EXPENSE
+                        {strings.modalExpense}
                       </ThemedText>
                     </Pressable>
 
@@ -551,14 +629,14 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                           transaksiType === 'INCOME' && styles.typeButtonTextSelected,
                         ]}
                       >
-                        INCOME
+                        {strings.modalIncome}
                       </ThemedText>
                     </Pressable>
                   </View>
 
                   {/* Category Selection with Lucide Icons */}
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    CATEGORY
+                    {strings.modalCategory}
                   </ThemedText>
                   <ScrollView
                     horizontal
@@ -605,7 +683,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
 
                   {/* Amount Input */}
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    AMOUNT (IDR)
+                    {strings.modalAmountIdr}
                   </ThemedText>
                   <TextInput
                     value={transaksiAmount}
@@ -618,19 +696,19 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
 
                   {/* Description Input */}
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    DESCRIPTION
+                    {strings.modalDescription}
                   </ThemedText>
                   <TextInput
                     value={transaksiDescription}
                     onChangeText={setTransaksiDescription}
-                    placeholder="e.g. Groceries, Cloud server, Client invoice"
+                    placeholder={strings.modalDescPlaceholder}
                     placeholderTextColor={colors.textSecondary}
                     style={styles.input}
                   />
 
                   <View style={styles.submitContainer}>
                     <ThemedButton
-                      title="SUBMIT TRANSACTION"
+                      title={strings.modalSubmitTransaction}
                       variant={transaksiType === 'EXPENSE' ? 'primary' : 'success'}
                       size="lg"
                       disabled={kantongs.length === 0}
@@ -644,18 +722,18 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
               {mode === 'TAGIHAN' && (
                 <View style={styles.formGroup}>
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    BILL TITLE
+                    {strings.modalBillTitle}
                   </ThemedText>
                   <TextInput
                     value={tagihanTitle}
                     onChangeText={setTagihanTitle}
-                    placeholder="e.g. WiFi Fiber, Apartment Rent, Spotify"
+                    placeholder={strings.modalBillTitlePlaceholder}
                     placeholderTextColor={colors.textSecondary}
                     style={styles.input}
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    AMOUNT (IDR)
+                    {strings.modalAmountIdr}
                   </ThemedText>
                   <TextInput
                     value={tagihanAmount}
@@ -667,7 +745,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    DUE DATE (YYYY-MM-DD)
+                    {strings.modalDueDate}
                   </ThemedText>
                   <TextInput
                     value={tagihanDueDate}
@@ -679,7 +757,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    BILL RECURRENCE
+                    {strings.modalBillRecurrence}
                   </ThemedText>
                   <View style={styles.typeSelectorRow}>
                     <Pressable
@@ -701,7 +779,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                           !tagihanIsRecurring && styles.typeButtonTextSelected,
                         ]}
                       >
-                        ONE-OFF
+                        {strings.modalOneOff}
                       </ThemedText>
                     </Pressable>
 
@@ -724,7 +802,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                           tagihanIsRecurring && styles.typeButtonTextSelected,
                         ]}
                       >
-                        RECURRING
+                        {strings.modalRecurring}
                       </ThemedText>
                     </Pressable>
                   </View>
@@ -732,7 +810,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                   {tagihanIsRecurring && (
                     <>
                       <ThemedText variant="caption" style={styles.fieldLabel}>
-                        FREQUENCY
+                        {strings.modalFrequency}
                       </ThemedText>
                       <View style={styles.frequencyRow}>
                         {(['WEEKLY', 'MONTHLY', 'YEARLY'] as TagihanFrequency[]).map((freq) => {
@@ -765,7 +843,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
 
                   <View style={styles.submitContainer}>
                     <ThemedButton
-                      title="CREATE BILL"
+                      title={strings.modalCreateBill}
                       variant="primary"
                       size="lg"
                       loading={isSubmitting}
@@ -778,29 +856,29 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
               {mode === 'WISHLIST' && (
                 <View style={styles.formGroup}>
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    TARGET TITLE
+                    {strings.modalTargetTitle}
                   </ThemedText>
                   <TextInput
                     value={wishlistTitle}
                     onChangeText={setWishlistTitle}
-                    placeholder="e.g. Mechanical Keyboard, Sony WH-1000XM5"
+                    placeholder={strings.modalTargetTitlePlaceholder}
                     placeholderTextColor={colors.textSecondary}
                     style={styles.input}
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    DESCRIPTION (OPTIONAL)
+                    {strings.modalDescOptional}
                   </ThemedText>
                   <TextInput
                     value={wishlistDescription}
                     onChangeText={setWishlistDescription}
-                    placeholder="e.g. Custom build with tactile switches"
+                    placeholder={strings.modalDescOptionalPlaceholder}
                     placeholderTextColor={colors.textSecondary}
                     style={styles.input}
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    TARGET PRICE (IDR)
+                    {strings.modalTargetPrice}
                   </ThemedText>
                   <TextInput
                     value={wishlistPrice}
@@ -812,7 +890,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    IMAGE ATTACHMENT
+                    {strings.modalImageAttachment}
                   </ThemedText>
 
                   {wishlistImageUrl ? (
@@ -829,7 +907,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                           style={styles.imageSelectedLabel}
                           numberOfLines={1}
                         >
-                          Image Attached
+                          {strings.modalImageAttached}
                         </ThemedText>
                         <ThemedText
                           variant="caption"
@@ -840,14 +918,14 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                         </ThemedText>
                         <View style={styles.imageActionButtons}>
                           <ThemedButton
-                            title="CHANGE"
+                            title={strings.modalChangeImage}
                             variant="outline"
                             size="sm"
                             style={styles.imageBtn}
                             onPress={handlePickImage}
                           />
                           <ThemedButton
-                            title="REMOVE"
+                            title={strings.modalRemoveImage}
                             variant="outline"
                             size="sm"
                             style={styles.imageBtn}
@@ -858,7 +936,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                     </View>
                   ) : (
                     <ThemedButton
-                      title="+ PICK IMAGE FROM GALLERY"
+                      title={strings.modalPickImage}
                       variant="outline"
                       size="md"
                       onPress={handlePickImage}
@@ -866,24 +944,24 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                   )}
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    OR ENTER IMAGE URL / PATH
+                    {strings.modalImageUrlLabel}
                   </ThemedText>
                   <TextInput
                     value={wishlistImageUrl}
                     onChangeText={setWishlistImageUrl}
-                    placeholder="file:///... or https://example.com/image.png"
+                    placeholder={strings.modalImageUrlPlaceholder}
                     placeholderTextColor={colors.textSecondary}
                     style={styles.input}
                     autoCapitalize="none"
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
-                    PURCHASE LINK (OPTIONAL)
+                    {strings.modalPurchaseLink}
                   </ThemedText>
                   <TextInput
                     value={wishlistPurchaseLink}
                     onChangeText={setWishlistPurchaseLink}
-                    placeholder="https://tokopedia.com/..."
+                    placeholder={strings.modalPurchaseLinkPlaceholder}
                     placeholderTextColor={colors.textSecondary}
                     style={styles.input}
                     autoCapitalize="none"
@@ -892,7 +970,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
 
                   <View style={styles.submitContainer}>
                     <ThemedButton
-                      title="CREATE WISHLIST TARGET"
+                      title={strings.modalCreateWishlistBtn}
                       variant="primary"
                       size="lg"
                       loading={isSubmitting}

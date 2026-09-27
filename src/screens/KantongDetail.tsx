@@ -17,6 +17,7 @@ import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, MonospaceFamily, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { KantongDetailProps, Transaksi } from '@/types';
 
@@ -44,6 +45,7 @@ function formatDate(isoString: string): string {
 export default function KantongDetail({ kantongId, onBack }: KantongDetailProps) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
+  const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const { kantongs, transaksis, updateKantong, deleteKantong } = useFinanceStore();
 
@@ -99,13 +101,13 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
     if (!kantong) return;
 
     if (!editName.trim()) {
-      setEditError('ERROR: KANTONG NAME IS REQUIRED');
+      setEditError(t('kantongErrNameRequired'));
       return;
     }
 
     const parsedBalance = Number.parseFloat(editBalance.replace(/[^0-9.-]+/g, ''));
     if (Number.isNaN(parsedBalance)) {
-      setEditError('ERROR: ENTER A VALID NUMERIC BALANCE');
+      setEditError(t('kantongErrInvalidBalance'));
       return;
     }
 
@@ -152,19 +154,19 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.backButton}>
             <ThemedText variant="caption" weight="bold">
-              [ &larr; BACK ]
+              {t('kantongBack')}
             </ThemedText>
           </Pressable>
         </View>
         <View style={styles.notFoundContainer}>
           <ThemedText weight="bold" style={styles.notFoundTitle}>
-            {'// KANTONG NOT FOUND'}
+            {t('kantongNotFound')}
           </ThemedText>
           <ThemedText variant="caption" style={styles.notFoundDesc}>
-            This envelope may have been deleted or removed from SQLite.
+            {t('kantongNotFoundDesc')}
           </ThemedText>
           <ThemedButton
-            title="RETURN TO DASHBOARD"
+            title={t('kantongReturnDashboard')}
             variant="primary"
             size="md"
             onPress={onBack}
@@ -182,7 +184,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
         <View style={styles.overviewTopRow}>
           <View style={styles.nameTag}>
             <ThemedText variant="caption" style={styles.nameTagText}>
-              {'// ENVELOPE'}
+              {t('kantongEnvelope')}
             </ThemedText>
           </View>
           <ThemedText variant="caption" style={styles.idText}>
@@ -196,7 +198,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
 
         <View style={styles.balanceSection}>
           <ThemedText variant="caption" style={styles.balanceLabel}>
-            CURRENT BALANCE
+            {t('kantongCurrentBalance')}
           </ThemedText>
           <ThemedText variant="title" style={styles.balanceAmount}>
             {formatCurrency(kantong.balance)}
@@ -236,14 +238,14 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
 
         <View style={styles.cardActionsRow}>
           <ThemedButton
-            title="[ EDIT KANTONG ]"
+            title={`[ ${t('kantongEditTitle').replace('// ', '')} ]`}
             variant="outline"
             size="sm"
             style={styles.cardActionBtn}
             onPress={openEditModal}
           />
           <ThemedButton
-            title="[ DELETE KANTONG ]"
+            title={`[ ${t('kantongDeleteTitle')} ]`}
             variant="outline"
             size="sm"
             style={styles.cardActionBtn}
@@ -255,7 +257,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
       {/* Transactions Section Title */}
       <View style={styles.sectionHeader}>
         <ThemedText weight="bold" style={styles.sectionTitle}>
-          TRANSACTION HISTORY
+          {t('kantongTransactions')}
         </ThemedText>
         <ThemedText variant="caption" style={styles.sectionCount}>
           {`LOGGED: ${kantongTransaksis.length}`}
@@ -301,10 +303,10 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
   const renderEmptyComponent = () => (
     <View style={styles.emptyContainer}>
       <ThemedText variant="caption" style={styles.emptyTitle}>
-        NO TRANSACTIONS RECORDED
+        {t('kantongNoTransactions').toUpperCase()}
       </ThemedText>
       <ThemedText variant="caption" style={styles.emptySubtitle}>
-        Transactions assigned to this Kantong will appear here chronologically.
+        {t('kantongNoTransactionsDesc')}
       </ThemedText>
     </View>
   );
@@ -320,7 +322,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
       <View style={styles.appBar}>
         <Pressable onPress={onBack} style={styles.backButton}>
           <ThemedText variant="caption" weight="bold" style={styles.backText}>
-            [ &larr; CORE ]
+            {t('kantongBack')}
           </ThemedText>
         </Pressable>
         <ThemedText variant="caption" style={styles.appBarTitle}>
@@ -352,10 +354,10 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
             <View style={styles.modalContainer}>
               <View style={styles.modalHeader}>
                 <ThemedText weight="bold" style={styles.modalTitle}>
-                  {'// EDIT KANTONG'}
+                  {t('kantongEditTitle')}
                 </ThemedText>
                 <Pressable onPress={() => setIsEditModalVisible(false)} style={styles.modalCloseBtn}>
-                  <ThemedText variant="caption">[ ESC ]</ThemedText>
+                  <ThemedText variant="caption">{t('kantongEsc')}</ThemedText>
                 </Pressable>
               </View>
 
@@ -369,7 +371,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
                 )}
 
                 <ThemedText variant="caption" style={styles.modalFieldLabel}>
-                  NAME
+                  {t('kantongNameLabel')}
                 </ThemedText>
                 <TextInput
                   value={editName}
@@ -381,7 +383,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
                 />
 
                 <ThemedText variant="caption" style={styles.modalFieldLabel}>
-                  BALANCE (IDR)
+                  {t('kantongBalanceLabel')}
                 </ThemedText>
                 <TextInput
                   value={editBalance}
@@ -394,14 +396,14 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
 
                 <View style={styles.modalActionsRow}>
                   <ThemedButton
-                    title="CANCEL"
+                    title={t('billsCancel')}
                     variant="outline"
                     size="md"
                     style={styles.modalActionBtn}
                     onPress={() => setIsEditModalVisible(false)}
                   />
                   <ThemedButton
-                    title="SAVE CHANGES"
+                    title={t('kantongUpdateBtn')}
                     variant="primary"
                     size="md"
                     loading={isUpdating}
@@ -426,13 +428,13 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <ThemedText weight="bold" style={styles.deleteModalTitle}>
-                ! CONFIRM DELETION
+                {`! ${t('kantongDeleteTitle')}`}
               </ThemedText>
               <Pressable
                 onPress={() => setIsDeleteModalVisible(false)}
                 style={styles.modalCloseBtn}
               >
-                <ThemedText variant="caption">[ ESC ]</ThemedText>
+                <ThemedText variant="caption">{t('kantongEsc')}</ThemedText>
               </Pressable>
             </View>
 
@@ -446,16 +448,16 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
               )}
 
               <ThemedText variant="caption" style={styles.warningMessage}>
-                {`Are you sure you want to delete Kantong "${kantong.name}"?`}
+                {`${t('kantongDeleteConfirm')} "${kantong.name}"?`}
               </ThemedText>
 
               <ThemedText variant="caption" style={styles.warningSubMessage}>
-                {`This will permanently remove this envelope and ${kantongTransaksis.length} associated transaction records from SQLite. This action cannot be reversed.`}
+                {t('kantongDeleteWarning')}
               </ThemedText>
 
               <View style={styles.modalActionsRow}>
                 <ThemedButton
-                  title="CANCEL"
+                  title={t('billsCancel')}
                   variant="outline"
                   size="md"
                   disabled={isDeleting}
@@ -463,7 +465,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
                   onPress={() => setIsDeleteModalVisible(false)}
                 />
                 <ThemedButton
-                  title="CONFIRM DELETE"
+                  title={t('kantongDeleteBtn')}
                   variant="primary"
                   size="md"
                   loading={isDeleting}

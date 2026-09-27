@@ -33,6 +33,7 @@ import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Wishlist, WishlistCardProps, WishlistScreenProps } from '@/types';
 
@@ -62,6 +63,7 @@ function WishlistCard({
   onDelete,
 }: WishlistCardProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const isAffordable = totalBalance >= wishlist.price;
   const progressRatio = wishlist.price > 0 ? Math.min(1, totalBalance / wishlist.price) : 1;
@@ -88,7 +90,7 @@ function WishlistCard({
         <View style={styles.badgeAchieved}>
           <CheckCircle2 size={12} color={colors.success} />
           <ThemedText variant="caption" weight="bold" style={styles.badgeTextAchieved}>
-            ACHIEVED
+            {t('wishlistAchieved')}
           </ThemedText>
         </View>
       );
@@ -99,7 +101,7 @@ function WishlistCard({
         <View style={styles.badgeAffordable}>
           <Sparkles size={12} color={colors.success} />
           <ThemedText variant="caption" weight="bold" style={styles.badgeTextAffordable}>
-            READY TO BUY
+            {t('wishlistReadyToBuy')}
           </ThemedText>
         </View>
       );
@@ -108,7 +110,7 @@ function WishlistCard({
     return (
       <View style={styles.badgeProgress}>
         <ThemedText variant="caption" weight="bold" style={styles.badgeTextProgress}>
-          {`${progressPercent}% FUNDED`}
+          {`${progressPercent}% ${t('wishlistFunded')}`}
         </ThemedText>
       </View>
     );
@@ -157,7 +159,7 @@ function WishlistCard({
       <View style={styles.priceRow}>
         <View>
           <ThemedText variant="caption" style={styles.priceLabel}>
-            TARGET PRICE
+            {t('wishlistTargetPrice')}
           </ThemedText>
           <ThemedText
             variant="amount"
@@ -174,7 +176,7 @@ function WishlistCard({
           <Pressable onPress={handleOpenLink} style={styles.linkButton} hitSlop={8}>
             <ExternalLink size={13} color={colors.accent} />
             <ThemedText variant="caption" weight="semibold" style={styles.linkText}>
-              STORE LINK
+              {t('wishlistStoreLink')}
             </ThemedText>
           </Pressable>
         ) : null}
@@ -185,8 +187,8 @@ function WishlistCard({
         <View style={styles.progressHeaderRow}>
           <ThemedText variant="caption" style={styles.progressLabel}>
             {wishlist.isAchieved
-              ? `Acquired on ${formatDate(wishlist.createdAt)}`
-              : `Wallet Coverage: ${progressPercent}%`}
+              ? `${t('wishlistAcquiredOn')} ${formatDate(wishlist.createdAt)}`
+              : `${t('wishlistWalletCoverage')}: ${progressPercent}%`}
           </ThemedText>
           {!wishlist.isAchieved && (
             <ThemedText
@@ -194,7 +196,7 @@ function WishlistCard({
               weight="bold"
               style={isAffordable ? styles.fundedSuccessText : styles.deficitText}
             >
-              {isAffordable ? 'Fully Funded' : `Deficit: ${formatCurrency(deficit)}`}
+              {isAffordable ? t('wishlistFullyFunded') : `${t('wishlistDeficit')}: ${formatCurrency(deficit)}`}
             </ThemedText>
           )}
         </View>
@@ -216,7 +218,7 @@ function WishlistCard({
       <View style={styles.cardActionsRow}>
         {onToggleAchieve && (
           <ThemedButton
-            title={wishlist.isAchieved ? 'MARK AS UNFINISHED' : '✓ MARK ACHIEVED'}
+            title={wishlist.isAchieved ? t('wishlistMarkUnfinished') : t('wishlistMarkAchieved')}
             size="sm"
             variant={wishlist.isAchieved ? 'ghost' : isAffordable ? 'success' : 'outline'}
             onPress={() => onToggleAchieve(wishlist)}
@@ -241,6 +243,7 @@ function WishlistCard({
 export default function WishlistScreen({ onBack }: WishlistScreenProps) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
+  const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const {
     wishlists,
@@ -334,17 +337,17 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
           <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
             <ArrowLeft size={16} color={colors.text} />
             <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-              DASHBOARD
+              {t('navDashboard').toUpperCase()}
             </ThemedText>
           </Pressable>
         ) : (
           <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
-            MONOCASH // WISHLIST
+            {t('wishlistPageTitle')}
           </ThemedText>
         )}
         <View style={styles.countBadge}>
           <ThemedText variant="caption" style={styles.activeTag}>
-            {`TOTAL: ${wishlists.length}`}
+            {`${t('dashboardTotal').toUpperCase()}: ${wishlists.length}`}
           </ThemedText>
         </View>
       </View>
@@ -354,7 +357,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
         <View style={styles.summaryTopRow}>
           <View>
             <ThemedText variant="caption" style={styles.summaryLabel}>
-              AGGREGATED KANTONG BALANCE
+              {t('wishlistAggBalance')}
             </ThemedText>
             <ThemedText variant="amount" style={styles.summaryAmount}>
               {formatCurrency(totalBalance)}
@@ -367,7 +370,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
         <View style={styles.summaryCompareRow}>
           <View style={styles.compareItem}>
             <ThemedText variant="caption" style={styles.compareLabel}>
-              ACTIVE TARGETS COST
+              {t('wishlistActiveTargetsCost')}
             </ThemedText>
             <ThemedText weight="bold" style={styles.compareValue}>
               {formatCurrency(totalTargetCost)}
@@ -375,7 +378,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
           </View>
           <View style={styles.compareItemRight}>
             <ThemedText variant="caption" style={styles.compareLabel}>
-              OVERALL COVERAGE
+              {t('wishlistOverallCoverage')}
             </ThemedText>
             <ThemedText weight="bold" style={styles.compareValue}>
               {`${overallCoveragePercent}%`}
@@ -395,12 +398,12 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
 
         <View style={styles.summaryFooterRow}>
           <ThemedText variant="caption" style={styles.summaryFooterText}>
-            {`Achieved: ${achievedCount} / ${wishlists.length}`}
+            {`${t('wishlistAchieved')}: ${achievedCount} / ${wishlists.length}`}
           </ThemedText>
           <ThemedText variant="caption" style={styles.summaryFooterText}>
             {totalBalance >= totalTargetCost
-              ? 'Status: 100% Covered'
-              : `Deficit: -${formatCurrency(totalTargetCost - totalBalance)}`}
+              ? t('wishlistStatusCovered')
+              : `${t('wishlistDeficit')}: -${formatCurrency(totalTargetCost - totalBalance)}`}
           </ThemedText>
         </View>
       </View>
@@ -408,7 +411,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
       {/* Action Button Row */}
       <View style={styles.actionButtonsRow}>
         <ThemedButton
-          title="+ NEW WISHLIST TARGET"
+          title={t('wishlistNewTarget')}
           variant="primary"
           size="md"
           style={styles.actionButton}
@@ -427,7 +430,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
             weight={activeFilter === 'ALL' ? 'bold' : 'medium'}
             style={activeFilter === 'ALL' ? styles.filterTextActive : styles.filterText}
           >
-            {`ALL (${wishlists.length})`}
+            {`${t('wishlistAll')} (${wishlists.length})`}
           </ThemedText>
         </Pressable>
 
@@ -440,7 +443,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
             weight={activeFilter === 'PENDING' ? 'bold' : 'medium'}
             style={activeFilter === 'PENDING' ? styles.filterTextActive : styles.filterText}
           >
-            {`PENDING (${activeCount})`}
+            {`${t('wishlistPending')} (${activeCount})`}
           </ThemedText>
         </Pressable>
 
@@ -453,7 +456,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
             weight={activeFilter === 'ACHIEVED' ? 'bold' : 'medium'}
             style={activeFilter === 'ACHIEVED' ? styles.filterTextActive : styles.filterText}
           >
-            {`ACHIEVED (${achievedCount})`}
+            {`${t('wishlistAchieved')} (${achievedCount})`}
           </ThemedText>
         </Pressable>
       </View>
@@ -461,10 +464,10 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
       {/* Section Subheader */}
       <View style={styles.sectionHeaderRow}>
         <ThemedText weight="bold" style={styles.sectionTitle}>
-          TARGETS & DESIRES
+          {t('wishlistTargetsTitle')}
         </ThemedText>
         <ThemedText variant="caption" style={styles.sectionCount}>
-          {`SHOWING ${filteredWishlists.length}`}
+          {`${t('wishlistShowing')} ${filteredWishlists.length}`}
         </ThemedText>
       </View>
     </View>
@@ -475,7 +478,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
       return (
         <View style={styles.emptyContainer}>
           <ThemedText variant="caption" style={styles.emptySubtext}>
-            LOADING WISHLIST ITEMS...
+            {t('wishlistLoading')}
           </ThemedText>
         </View>
       );
@@ -485,10 +488,10 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
       <View style={styles.emptyContainer}>
         <Sparkles size={36} color={colors.accent} />
         <ThemedText weight="bold" style={styles.emptyText}>
-          NO WISHLIST ITEMS
+          {t('wishlistNoItems')}
         </ThemedText>
         <ThemedText variant="caption" style={styles.emptySubtext}>
-          Dream big — add your personal savings targets and desires.
+          {t('wishlistNoItemsDesc')}
         </ThemedText>
       </View>
     );
@@ -547,7 +550,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
               <View style={styles.modalHeaderTitleRow}>
                 <Trash2 size={18} color={colors.danger} />
                 <ThemedText weight="bold" style={styles.modalTitle}>
-                  DELETE WISHLIST ITEM
+                  {t('wishlistDeleteTitle')}
                 </ThemedText>
               </View>
               <Pressable
@@ -562,7 +565,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
             {itemToDelete && (
               <View style={styles.modalContent}>
                 <ThemedText variant="caption" style={styles.modalLabel}>
-                  ARE YOU SURE YOU WANT TO DELETE:
+                  {t('wishlistDeleteConfirm')}
                 </ThemedText>
                 <View style={styles.deleteItemPreview}>
                   <ThemedText weight="bold" style={styles.modalValue}>
@@ -575,13 +578,13 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
 
                 <View style={styles.modalActions}>
                   <ThemedButton
-                    title="DELETE ITEM"
+                    title={t('wishlistDeleteBtn')}
                     variant="danger"
                     size="lg"
                     onPress={handleConfirmDelete}
                   />
                   <ThemedButton
-                    title="CANCEL"
+                    title={t('billsCancel')}
                     variant="outline"
                     size="md"
                     onPress={() => setItemToDelete(null)}

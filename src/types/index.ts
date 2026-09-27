@@ -102,6 +102,7 @@ export interface ExportResult {
 }
 
 export type ThemeMode = 'dark' | 'light';
+export type Language = 'id' | 'en';
 
 export interface FinanceState {
   kantongs: Kantong[];
@@ -109,10 +110,12 @@ export interface FinanceState {
   tagihans: Tagihan[];
   wishlists: Wishlist[];
   themeMode: ThemeMode;
+  language: Language;
   isLoading: boolean;
   error: string | null;
   loadInitialData: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => void;
+  setLanguage: (lang: Language) => void;
   toggleTheme: () => void;
   resetAllData: () => Promise<void>;
   addKantong: (input: AddKantongInput) => Promise<Kantong>;

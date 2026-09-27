@@ -15,35 +15,37 @@ import Dashboard from '@/screens/Dashboard';
 import KantongDetail from '@/screens/KantongDetail';
 import SettingsScreen from '@/screens/Settings';
 import WishlistScreen from '@/screens/Wishlist';
+import { useTranslation } from '@/hooks/use-translation';
+import { TranslationKey } from '@/constants/translations';
 import { useTheme } from '@/hooks/use-theme';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { ActiveScreen } from '@/types';
 
 type NavTabItem = {
   key: ActiveScreen;
-  label: string;
+  labelKey: TranslationKey;
   icon: (color: string, size: number) => React.ReactNode;
 };
 
 const NAV_TABS: NavTabItem[] = [
   {
     key: 'DASHBOARD',
-    label: 'Dashboard',
+    labelKey: 'navDashboard',
     icon: (color, size) => <LayoutDashboard size={size} color={color} />,
   },
   {
     key: 'BILLS',
-    label: 'Bills',
+    labelKey: 'navBills',
     icon: (color, size) => <Receipt size={size} color={color} />,
   },
   {
     key: 'WISHLIST',
-    label: 'Wishlist',
+    labelKey: 'navWishlist',
     icon: (color, size) => <Sparkles size={size} color={color} />,
   },
   {
     key: 'SETTINGS',
-    label: 'Settings',
+    labelKey: 'navSettings',
     icon: (color, size) => <Settings size={size} color={color} />,
   },
 ];
@@ -54,6 +56,7 @@ export default function HomeScreen() {
 
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
+  const { t } = useTranslation();
 
   const handleSelectScreen = (screen: ActiveScreen) => {
     if (screen === 'DASHBOARD') {
@@ -150,7 +153,7 @@ export default function HomeScreen() {
                       { color: isActive ? activeColor : inactiveColor },
                     ]}
                   >
-                    {tab.label}
+                    {t(tab.labelKey)}
                   </ThemedText>
                 </Pressable>
               );
