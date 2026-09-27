@@ -1,0 +1,421 @@
+import { create } from 'zustand';
+import {
+  AddKantongInput,
+  AddTagihanInput,
+  AddTransaksiInput,
+  AddWishlistInput,
+  ExportResult,
+  FinanceState,
+  Kantong,
+  Tagihan,
+  ThemeMode,
+  Transaksi,
+  UpdateKantongInput,
+  Wishlist,
+} from '@/types';
+import { exportAndShareFullData } from '@/utils/exportUtils';
+import {
+  createKantong,
+  createTagihan,
+  createTransaksi,
+  createWishlist,
+  deleteKantong as deleteKantongDb,
+  deleteWishlist as deleteWishlistDb,
+  getAllKantong,
+  getAllTagihan,
+  getAllTransaksi,
+  getAllWishlist,
+  getWishlistById,
+  initDatabase,
+  resetDatabase,
+  updateKantong,
+  updateTagihan,
+  updateWishlist,
+} from '@/db/init';
+
+function generateUniqueId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+export const useFinanceStore = create<FinanceState>((set, get) => ({
+  kantongs: [],
+  transaksis: [],
+  tagihans: [],
+  wishlists: [],
+  themeMode: 'dark',
+  isLoading: false,
+  error: null,
+
+  setThemeMode: (mode: ThemeMode) => set({ themeMode: mode }),
+
+  resetAllData: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await resetDatabase();
+      set({
+        kantongs: [],
+        transaksis: [],
+        tagihans: [],
+        wishlists: [],
+        isLoading: false,
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reset all data';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  loadInitialData: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await initDatabase();
+      const [kantongs, transaksis, tagihans, wishlists] = await Promise.all([
+        getAllKantong(),
+        getAllTransaksi(),
+        getAllTagihan(),
+        getAllWishlist(),
+      ]);
+      set({ kantongs, transaksis, tagihans, wishlists, isLoading: false });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load initial data';
+      set({ error: errorMessage, isLoading: false });
+    }
+  },
+
+  addKantong: async (input: AddKantongInput): Promise<Kantong> => {
+    set({ isLoading: true, error: null });
+    try {
+      const now = new Date().toISOString();
+      const newKantong: Kantong = {
+        id: input.id ?? generateUniqueId(),
+        name: input.name.trim(),
+        balance: input.balance ?? 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await createKantong(newKantong);
+
+      set((state) => ({
+        kantongs: [...state.kantongs, newKantong],
+        isLoading: false,
+      }));
+
+      return newKantong;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add kantong';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  updateKantong: async (id: string, input: UpdateKantongInput): Promise<Kantong | null> => {
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await updateKantong(id, input);
+      if (!updated) {
+        throw new Error(`Kantong with id "${id}" not found`);
+      }
+
+      set((state) => ({
+        kantongs: state.kantongs.map((k) => (k.id === id ? updated : k)),
+        isLoading: false,
+      }));
+
+      return updated;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update kantong';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  deleteKantong: async (id: string): Promise<boolean> => {
+    set({ isLoading: true, error: null });
+    try {
+      const success = await deleteKantongDb(id);
+      if (success) {
+        set((state) => ({
+          kantongs: state.kantongs.filter((k) => k.id !== id),
+          transaksis: state.transaksis.filter((t) => t.kantongId !== id),
+          isLoading: false,
+        }));
+      } else {
+        set({ isLoading: false });
+      }
+
+      return success;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete kantong';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  addTransaksi: async (input: AddTransaksiInput): Promise<Transaksi> => {
+    set({ isLoading: true, error: null });
+    try {
+      const { kantongs } = get();
+      const targetKantong = kantongs.find((k) => k.id === input.kantongId);
+
+      if (!targetKantong) {
+        throw new Error(`Kantong with id "${input.kantongId}" not found`);
+      }
+
+      const balanceDelta = input.type === 'INCOME' ? input.amount : -input.amount;
+      const newBalance = targetKantong.balance + balanceDelta;
+      const now = new Date().toISOString();
+
+      const newTransaksi: Transaksi = {
+        id: input.id ?? generateUniqueId(),
+        kantongId: input.kantongId,
+        amount: input.amount,
+        type: input.type,
+        description: input.description.trim(),
+        category: (input.category ?? 'GENERAL').trim().toUpperCase(),
+        date: input.date ?? now,
+        createdAt: now,
+      };
+
+      await createTransaksi(newTransaksi);
+      await updateKantong(targetKantong.id, { balance: newBalance });
+
+      set((state) => ({
+        transaksis: [newTransaksi, ...state.transaksis],
+        kantongs: state.kantongs.map((k) =>
+          k.id === targetKantong.id
+            ? { ...k, balance: newBalance, updatedAt: now }
+            : k
+        ),
+        isLoading: false,
+      }));
+
+      return newTransaksi;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add transaksi';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  loadTagihans: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await initDatabase();
+      const tagihans = await getAllTagihan();
+      set({ tagihans, isLoading: false });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load tagihans';
+      set({ error: errorMessage, isLoading: false });
+    }
+  },
+
+  addTagihan: async (input: AddTagihanInput): Promise<Tagihan> => {
+    set({ isLoading: true, error: null });
+    try {
+      const now = new Date().toISOString();
+      const newTagihan: Tagihan = {
+        id: input.id ?? generateUniqueId(),
+        title: input.title.trim(),
+        amount: input.amount,
+        dueDate: input.dueDate,
+        isRecurring: input.isRecurring ?? false,
+        frequency: input.frequency ?? null,
+        isPaid: false,
+        createdAt: now,
+      };
+
+      await createTagihan(newTagihan);
+
+      set((state) => ({
+        tagihans: [...state.tagihans, newTagihan],
+        isLoading: false,
+      }));
+
+      return newTagihan;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add tagihan';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  payTagihan: async (tagihanId: string, kantongId: string): Promise<void> => {
+    set({ isLoading: true, error: null });
+    try {
+      const { tagihans, kantongs, addTransaksi } = get();
+      const targetTagihan = tagihans.find((t) => t.id === tagihanId);
+
+      if (!targetTagihan) {
+        throw new Error(`Tagihan with id "${tagihanId}" not found`);
+      }
+
+      if (targetTagihan.isPaid) {
+        throw new Error(`Tagihan "${targetTagihan.title}" is already paid`);
+      }
+
+      const targetKantong = kantongs.find((k) => k.id === kantongId);
+      if (!targetKantong) {
+        throw new Error(`Kantong with id "${kantongId}" not found`);
+      }
+
+      await updateTagihan(tagihanId, { isPaid: true });
+
+      await addTransaksi({
+        kantongId,
+        amount: targetTagihan.amount,
+        type: 'EXPENSE',
+        description: `TAGIHAN: ${targetTagihan.title.toUpperCase()}`,
+        category: 'TAGIHAN',
+      });
+
+      set((state) => ({
+        tagihans: state.tagihans.map((t) =>
+          t.id === tagihanId ? { ...t, isPaid: true } : t
+        ),
+        isLoading: false,
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to pay tagihan';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  loadWishlists: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await initDatabase();
+      const wishlists = await getAllWishlist();
+      set({ wishlists, isLoading: false });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load wishlists';
+      set({ error: errorMessage, isLoading: false });
+    }
+  },
+
+  addWishlist: async (input: AddWishlistInput): Promise<Wishlist> => {
+    set({ isLoading: true, error: null });
+    try {
+      const now = new Date().toISOString();
+      const resolvedImage = (input.imageUri?.trim() || input.imageUrl?.trim()) ?? '';
+      const newWishlist: Wishlist = {
+        id: input.id ?? generateUniqueId(),
+        title: input.title.trim(),
+        description: input.description?.trim() ?? '',
+        price: input.price,
+        imageUrl: resolvedImage,
+        imageUri: resolvedImage || undefined,
+        purchaseLink: input.purchaseLink?.trim() || null,
+        isAchieved: false,
+        createdAt: now,
+      };
+
+      await createWishlist(newWishlist);
+
+      set((state) => ({
+        wishlists: [newWishlist, ...state.wishlists],
+        isLoading: false,
+      }));
+
+      return newWishlist;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add wishlist';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  toggleAchievedWishlist: async (id: string): Promise<Wishlist> => {
+    set({ isLoading: true, error: null });
+    try {
+      const { wishlists } = get();
+      const existing = wishlists.find((w) => w.id === id) ?? (await getWishlistById(id));
+
+      if (!existing) {
+        throw new Error(`Wishlist with id "${id}" not found`);
+      }
+
+      const nextAchieved = !existing.isAchieved;
+      const updatedWishlist = await updateWishlist(id, { isAchieved: nextAchieved });
+
+      if (!updatedWishlist) {
+        throw new Error(`Failed to update wishlist with id "${id}"`);
+      }
+
+      set((state) => {
+        const existsInState = state.wishlists.some((w) => w.id === id);
+        return {
+          wishlists: existsInState
+            ? state.wishlists.map((w) => (w.id === id ? updatedWishlist : w))
+            : [updatedWishlist, ...state.wishlists],
+          isLoading: false,
+        };
+      });
+
+      return updatedWishlist;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to toggle wishlist status';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  deleteWishlist: async (id: string): Promise<boolean> => {
+    set({ isLoading: true, error: null });
+    try {
+      const success = await deleteWishlistDb(id);
+      if (success) {
+        set((state) => ({
+          wishlists: state.wishlists.filter((w) => w.id !== id),
+          isLoading: false,
+        }));
+      } else {
+        set({ isLoading: false });
+      }
+      return success;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete wishlist';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  exportFinanceData: async (): Promise<ExportResult> => {
+    set({ isLoading: true, error: null });
+    try {
+      await initDatabase();
+      const [kantongs, transaksis, tagihans, wishlists] = await Promise.all([
+        getAllKantong(),
+        getAllTransaksi(),
+        getAllTagihan(),
+        getAllWishlist(),
+      ]);
+
+      const result = await exportAndShareFullData({
+        kantongs,
+        transaksis,
+        tagihans,
+        wishlists,
+      });
+
+      if (!result.success && result.error) {
+        set({ error: result.error, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
+
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to export finance data';
+      set({ error: errorMessage, isLoading: false });
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  },
+}));

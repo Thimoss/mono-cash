@@ -1,98 +1,156 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedText } from '@/components/ThemedText';
+import { Colors, Palette, Spacing, Typography } from '@/constants/theme';
+import BillsScreen from '@/screens/Bills';
+import Dashboard from '@/screens/Dashboard';
+import KantongDetail from '@/screens/KantongDetail';
+import SettingsScreen from '@/screens/Settings';
+import WishlistScreen from '@/screens/Wishlist';
+import { ActiveScreen } from '@/types';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+const TAB_LABELS: Record<string, string> = {
+  DASHBOARD: '[ CORE ]',
+  BILLS: '[ BILLS ]',
+  WISHLIST: '[ WISHLIST ]',
+  SETTINGS: '[ SETTINGS ]',
+};
 
 export default function HomeScreen() {
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('DASHBOARD');
+  const [selectedKantongId, setSelectedKantongId] = useState<string | null>(null);
+
+  const handleSelectScreen = (screen: ActiveScreen) => {
+    if (screen === 'DASHBOARD') {
+      setSelectedKantongId(null);
+    }
+    setActiveScreen(screen);
+  };
+
+  const renderActiveScreen = () => {
+    switch (activeScreen) {
+      case 'DASHBOARD':
+        return (
+          <Dashboard
+            onNavigateBills={() => handleSelectScreen('BILLS')}
+            onNavigateWishlist={() => handleSelectScreen('WISHLIST')}
+            onNavigateSettings={() => handleSelectScreen('SETTINGS')}
+            onSelectKantong={(kantong) => {
+              setSelectedKantongId(kantong.id);
+              setActiveScreen('KANTONG_DETAIL');
+            }}
+          />
+        );
+      case 'KANTONG_DETAIL':
+        if (selectedKantongId) {
+          return (
+            <KantongDetail
+              kantongId={selectedKantongId}
+              onBack={() => {
+                setSelectedKantongId(null);
+                setActiveScreen('DASHBOARD');
+              }}
+            />
+          );
+        }
+        return (
+          <Dashboard
+            onNavigateBills={() => handleSelectScreen('BILLS')}
+            onNavigateWishlist={() => handleSelectScreen('WISHLIST')}
+            onNavigateSettings={() => handleSelectScreen('SETTINGS')}
+            onSelectKantong={(kantong) => {
+              setSelectedKantongId(kantong.id);
+              setActiveScreen('KANTONG_DETAIL');
+            }}
+          />
+        );
+      case 'BILLS':
+        return <BillsScreen onBack={() => handleSelectScreen('DASHBOARD')} />;
+      case 'WISHLIST':
+        return <WishlistScreen onBack={() => handleSelectScreen('DASHBOARD')} />;
+      case 'SETTINGS':
+        return <SettingsScreen onBack={() => handleSelectScreen('DASHBOARD')} />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <SafeAreaProvider>
+      <StatusBar style="light" />
+      <View style={styles.container}>
+        <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+        <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.navBar}>
+          {(['DASHBOARD', 'BILLS', 'WISHLIST', 'SETTINGS'] as const).map((screen) => {
+            const isActive =
+              activeScreen === screen ||
+              (screen === 'DASHBOARD' && activeScreen === 'KANTONG_DETAIL');
+            const label = TAB_LABELS[screen] ?? screen;
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+            return (
+              <Pressable
+                key={screen}
+                onPress={() => handleSelectScreen(screen)}
+                style={[styles.navTab, isActive && styles.navTabActive]}
+              >
+                <ThemedText
+                  variant="caption"
+                  weight={isActive ? 'bold' : 'regular'}
+                  style={isActive ? styles.navTextActive : styles.navText}
+                >
+                  {label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </SafeAreaView>
+      </View>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: Palette.black,
+  },
+  screenContainer: {
+    flex: 1,
+  },
+  navBar: {
     flexDirection: 'row',
+    backgroundColor: Colors.dark.backgroundElement,
+    borderTopWidth: 1,
+    borderTopColor: Palette.gray800,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.one * 1.5,
+    paddingBottom: Spacing.one,
+    gap: Spacing.two,
   },
-  safeArea: {
+  navTab: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
+    paddingVertical: Spacing.one * 1.25,
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    borderWidth: 1,
+    borderColor: Palette.gray800,
+    backgroundColor: Palette.black,
   },
-  title: {
-    textAlign: 'center',
+  navTabActive: {
+    backgroundColor: Palette.white,
+    borderColor: Palette.white,
   },
-  code: {
-    textTransform: 'uppercase',
+  navText: {
+    color: Palette.gray400,
+    fontSize: Typography.scale.xs.fontSize,
+    letterSpacing: 1,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  navTextActive: {
+    color: Palette.black,
+    fontSize: Typography.scale.xs.fontSize,
+    letterSpacing: 1,
   },
 });
