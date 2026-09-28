@@ -256,23 +256,35 @@ export default function WishlistDetail({ wishlistId, onBack }: Readonly<Wishlist
 
         {/* Price & Saved Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statCol}>
+          <View style={[styles.statCol, styles.statColLeft]}>
             <ThemedText variant="caption" style={styles.statLabel}>
               {t('wishlistTargetPrice')}
             </ThemedText>
-            <ThemedText variant="amount" weight="bold" style={styles.statAmount}>
+            <ThemedText
+              variant="amount"
+              weight="bold"
+              style={styles.statAmount}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               {formatCurrency(wishlist.price)}
             </ThemedText>
           </View>
 
-          <View style={styles.statCol}>
-            <ThemedText variant="caption" style={styles.statLabel}>
+          <View style={[styles.statCol, styles.statColRight]}>
+            <ThemedText variant="caption" style={[styles.statLabel, styles.statLabelRight]}>
               {t('wishlistSavedAmount')}
             </ThemedText>
             <ThemedText
               variant="amount"
               weight="bold"
-              style={[styles.statAmount, { color: isCompleted ? colors.success : colors.accent }]}
+              style={[
+                styles.statAmount,
+                styles.statAmountRight,
+                { color: isCompleted ? colors.success : colors.accent },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
             >
               {formatCurrency(savedAmount)}
             </ThemedText>
@@ -620,19 +632,33 @@ const getStyles = (colors: ColorTheme) =>
     statsRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: Spacing.two,
       marginBottom: Spacing.three,
     },
     statCol: {
       flex: 1,
     },
+    statColLeft: {
+      alignItems: 'flex-start',
+    },
+    statColRight: {
+      alignItems: 'flex-end',
+    },
     statLabel: {
       color: colors.textSecondary,
       marginBottom: 2,
+    },
+    statLabelRight: {
+      textAlign: 'right',
     },
     statAmount: {
       fontSize: Typography.scale.xl.fontSize,
       color: colors.text,
       fontFamily: Typography.mono,
+    },
+    statAmountRight: {
+      textAlign: 'right',
     },
     progressContainer: {
       marginTop: Spacing.one,
