@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, {
   // eslint-disable-next-line @typescript-eslint/no-deprecated
@@ -452,15 +452,17 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
   const [tagihanIsRecurring, setTagihanIsRecurring] = useState(false);
   const [tagihanFrequency, setTagihanFrequency] = useState<TagihanFrequency>('MONTHLY');
 
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'set' && selectedDate) {
-        setTagihanDueDate(formatIsoDate(selectedDate));
-      }
-    } else if (selectedDate) {
+  const handleDateValueChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
+    if (selectedDate) {
       setTagihanDueDate(formatIsoDate(selectedDate));
     }
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+  };
+
+  const handleDatePickerDismiss = () => {
+    setShowDatePicker(false);
   };
 
   // Form State: Wishlist
@@ -936,7 +938,8 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
                       value={parseIsoDate(tagihanDueDate)}
                       mode="date"
                       display="default"
-                      onChange={handleDateChange}
+                      onValueChange={handleDateValueChange}
+                      onDismiss={handleDatePickerDismiss}
                     />
                   )}
 
@@ -977,7 +980,7 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
                             mode="date"
                             display="inline"
                             themeVariant={themeMode === 'light' ? 'light' : 'dark'}
-                            onChange={handleDateChange}
+                            onValueChange={handleDateValueChange}
                           />
                         </Pressable>
                       </Pressable>
