@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000" width="2000" height="2000">
+  <defs>
+    <linearGradient id="splashBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181B"/>
+      <stop offset="40%" stop-color="#121214"/>
+      <stop offset="100%" stop-color="#0B0B0D"/>
+    </linearGradient>
+    <radialGradient id="splashGlow" cx="50%" cy="46%" r="48%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.22"/>
+      <stop offset="45%" stop-color="#10B981" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#121214" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="spIndigoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="spGrowthGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="60%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <linearGradient id="spLoopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A5B4FC"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <filter id="spSoftGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="28" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="2000" height="2000" fill="url(#splashBg)"/>
+  <rect width="2000" height="2000" fill="url(#splashGlow)"/>
+
+  <g transform="translate(1000, 920)">
+    <g transform="scale(0.85) translate(-512, -512)">
+      <path d="M 330 640 A 240 240 0 1 1 694 640" 
+            fill="none" 
+            stroke="url(#spLoopGrad)" 
+            stroke-width="26" 
+            stroke-linecap="round" 
+            opacity="0.38"/>
+      <path d="M 340 680 L 340 380 C 340 348 368 328 398 344 L 512 425 L 626 344 C 656 328 684 348 684 380 L 684 680" 
+            fill="none" 
+            stroke="url(#spIndigoGrad)" 
+            stroke-width="52" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"/>
+      <path d="M 310 520 C 370 430 460 410 512 480 C 570 560 660 520 720 400" 
+            fill="none" 
+            stroke="url(#spGrowthGrad)" 
+            stroke-width="34" 
+            stroke-linecap="round"/>
+      <circle cx="720" cy="400" r="22" fill="#10B981" filter="url(#spSoftGlow)"/>
+      <circle cx="720" cy="400" r="10" fill="#FFFFFF"/>
+      <circle cx="512" cy="480" r="18" fill="#F3F4F6"/>
+      <circle cx="512" cy="480" r="8" fill="#6366F1"/>
+    </g>
+
+    <text x="0" y="320" 
+          font-family="system-ui, -apple-system, 'SF Pro Display', 'Inter', sans-serif" 
+          font-size="88" 
+          font-weight="800" 
+          letter-spacing="-1.5" 
+          text-anchor="middle" 
+          fill="#F3F4F6">
+      Mono<tspan fill="#6366F1">Cash</tspan>
+    </text>
+
+    <text x="0" y="380" 
+          font-family="system-ui, -apple-system, 'SF Pro Text', 'Inter', sans-serif" 
+          font-size="28" 
+          font-weight="500" 
+          letter-spacing="4.5" 
+          text-anchor="middle" 
+          fill="#9CA3AF">
+      FINANCIAL SIMPLICITY &amp; FLOW
+    </text>
+
+    <rect x="-40" y="420" width="80" height="4" rx="2" fill="#10B981" opacity="0.8"/>
+  </g>
+
+  <text x="1000" y="1880" 
+        font-family="system-ui, -apple-system, sans-serif" 
+        font-size="22" 
+        font-weight="500" 
+        letter-spacing="2" 
+        text-anchor="middle" 
+        fill="#52525B">
+    SECURE &amp; SEAMLESS WEALTH ENGINE
+  </text>
+</svg>

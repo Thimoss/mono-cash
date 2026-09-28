@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, {
-  runOnJS,
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  runOnJS, // NOSONAR
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -45,7 +46,7 @@ import { BorderRadius, ColorTheme, MonospaceFamily, Spacing, Typography } from '
 import { useTheme } from '@/hooks/use-theme';
 import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { ActionModalProps, TagihanFrequency, TransaksiType } from '@/types';
+import { ActionModalProps, Kantong, TagihanFrequency, TransaksiType } from '@/types';
 import { ThemedButton } from './ThemedButton';
 import { ThemedText } from './ThemedText';
 
@@ -80,7 +81,229 @@ function getCategoryIcon(category: string, size = 15, color = '#6B7280') {
   }
 }
 
-export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
+type ActionModalStyles = ReturnType<typeof getStyles>;
+
+interface KantongSelectorProps {
+  readonly kantongs: readonly Kantong[];
+  readonly selectedKantongId: string;
+  readonly onSelectKantong: (id: string) => void;
+  readonly label: string;
+  readonly noKantongText: string;
+  readonly colors: ColorTheme;
+  readonly styles: ActionModalStyles;
+}
+
+function KantongSelector({
+  kantongs,
+  selectedKantongId,
+  onSelectKantong,
+  label,
+  noKantongText,
+  colors,
+  styles,
+}: Readonly<KantongSelectorProps>) {
+  return (
+    <>
+      <ThemedText variant="caption" style={styles.fieldLabel}>
+        {label}
+      </ThemedText>
+      {kantongs.length === 0 ? (
+        <View style={styles.noKantongNotice}>
+          <ThemedText variant="caption" style={styles.noKantongText}>
+            {noKantongText}
+          </ThemedText>
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.kantongPillsRow}
+        >
+          {kantongs.map((k) => {
+            const isSelected = k.id === selectedKantongId;
+            return (
+              <Pressable
+                key={k.id}
+                onPress={() => onSelectKantong(k.id)}
+                style={[
+                  styles.kantongPill,
+                  isSelected && styles.kantongPillSelected,
+                ]}
+              >
+                <Wallet
+                  size={14}
+                  color={isSelected ? '#FFFFFF' : colors.textSecondary}
+                />
+                <ThemedText
+                  variant="caption"
+                  weight={isSelected ? 'bold' : 'regular'}
+                  style={[
+                    styles.kantongPillText,
+                    isSelected && styles.kantongPillTextSelected,
+                  ]}
+                >
+                  {k.name}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+    </>
+  );
+}
+
+interface TransactionTypeSelectorProps {
+  readonly activeType: TransaksiType;
+  readonly onSelectType: (type: TransaksiType) => void;
+  readonly label: string;
+  readonly expenseLabel: string;
+  readonly incomeLabel: string;
+  readonly colors: ColorTheme;
+  readonly styles: ActionModalStyles;
+}
+
+function TransactionTypeSelector({
+  activeType,
+  onSelectType,
+  label,
+  expenseLabel,
+  incomeLabel,
+  colors,
+  styles,
+}: Readonly<TransactionTypeSelectorProps>) {
+  return (
+    <>
+      <ThemedText variant="caption" style={styles.fieldLabel}>
+        {label}
+      </ThemedText>
+      <View style={styles.typeSelectorRow}>
+        <Pressable
+          onPress={() => onSelectType('EXPENSE')}
+          style={[
+            styles.typeButton,
+            activeType === 'EXPENSE' && styles.typeButtonExpenseSelected,
+          ]}
+        >
+          <ArrowUpRight
+            size={16}
+            color={
+              activeType === 'EXPENSE'
+                ? '#FFFFFF'
+                : colors.danger
+            }
+          />
+          <ThemedText
+            variant="caption"
+            weight={activeType === 'EXPENSE' ? 'bold' : 'medium'}
+            style={[
+              styles.typeButtonText,
+              activeType === 'EXPENSE' && styles.typeButtonTextSelected,
+            ]}
+          >
+            {expenseLabel}
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={() => onSelectType('INCOME')}
+          style={[
+            styles.typeButton,
+            activeType === 'INCOME' && styles.typeButtonIncomeSelected,
+          ]}
+        >
+          <ArrowDownLeft
+            size={16}
+            color={
+              activeType === 'INCOME'
+                ? '#FFFFFF'
+                : colors.success
+            }
+          />
+          <ThemedText
+            variant="caption"
+            weight={activeType === 'INCOME' ? 'bold' : 'medium'}
+            style={[
+              styles.typeButtonText,
+              activeType === 'INCOME' && styles.typeButtonTextSelected,
+            ]}
+          >
+            {incomeLabel}
+          </ThemedText>
+        </Pressable>
+      </View>
+    </>
+  );
+}
+
+interface CategoryPickerProps {
+  readonly activeType: TransaksiType;
+  readonly activeCategory: string;
+  readonly onSelectCategory: (category: string) => void;
+  readonly label: string;
+  readonly colors: ColorTheme;
+  readonly styles: ActionModalStyles;
+}
+
+function CategoryPicker({
+  activeType,
+  activeCategory,
+  onSelectCategory,
+  label,
+  colors,
+  styles,
+}: Readonly<CategoryPickerProps>) {
+  const categories =
+    activeType === 'EXPENSE' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+
+  return (
+    <>
+      <ThemedText variant="caption" style={styles.fieldLabel}>
+        {label}
+      </ThemedText>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryPillsRow}
+      >
+        {categories.map((cat) => {
+          const isSelected = activeCategory === cat;
+          const defaultColor =
+            activeType === 'EXPENSE' ? colors.accent : colors.success;
+          const iconColor = isSelected ? '#FFFFFF' : defaultColor;
+
+          return (
+            <Pressable
+              key={cat}
+              onPress={() => onSelectCategory(cat)}
+              style={[
+                styles.categoryPill,
+                isSelected &&
+                  (activeType === 'EXPENSE'
+                    ? styles.categoryPillExpenseSelected
+                    : styles.categoryPillIncomeSelected),
+              ]}
+            >
+              {getCategoryIcon(cat, 15, iconColor)}
+              <ThemedText
+                variant="caption"
+                weight={isSelected ? 'bold' : 'regular'}
+                style={[
+                  styles.categoryPillText,
+                  isSelected && styles.categoryPillTextSelected,
+                ]}
+              >
+                {cat}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </>
+  );
+}
+
+export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProps>) {
   const colors = useTheme();
   const { t } = useTranslation();
 
@@ -154,6 +377,8 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
       modalPurchaseLink: t('modalPurchaseLink'),
       modalPurchaseLinkPlaceholder: t('modalPurchaseLinkPlaceholder'),
       modalCreateWishlistBtn: t('modalCreateWishlistBtn'),
+      wishlistFundingSourceLabel: t('wishlistFundingSourceLabel'),
+      wishlistFundingSourcePlaceholder: t('wishlistFundingSourcePlaceholder'),
     }),
     [t],
   );
@@ -199,6 +424,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
   const [wishlistPrice, setWishlistPrice] = useState('');
   const [wishlistImageUrl, setWishlistImageUrl] = useState('');
   const [wishlistPurchaseLink, setWishlistPurchaseLink] = useState('');
+  const [wishlistFundingSource, setWishlistFundingSource] = useState('');
 
   // UI State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -223,7 +449,8 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
     translateY.value = withTiming(SCREEN_HEIGHT, { duration: 200 }, (finished) => {
       'worklet';
       if (finished) {
-        runOnJS(onClose)();
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        runOnJS(onClose)(); // NOSONAR
       }
     });
   };
@@ -393,6 +620,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
         imageUrl: wishlistImageUrl.trim(),
         imageUri: wishlistImageUrl.trim(),
         purchaseLink: wishlistPurchaseLink.trim() || null,
+        funding_source: wishlistFundingSource.trim() || null,
       });
 
       setWishlistTitle('');
@@ -400,6 +628,7 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
       setWishlistPrice('');
       setWishlistImageUrl('');
       setWishlistPurchaseLink('');
+      setWishlistFundingSource('');
       setIsSubmitting(false);
       smoothClose();
     } catch (err) {
@@ -528,158 +757,36 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
               {mode === 'TRANSAKSI' && (
                 <View style={styles.formGroup}>
                   {/* Kantong Selection */}
-                  <ThemedText variant="caption" style={styles.fieldLabel}>
-                    {strings.modalSelectKantong}
-                  </ThemedText>
-                  {kantongs.length === 0 ? (
-                    <View style={styles.noKantongNotice}>
-                      <ThemedText variant="caption" style={styles.noKantongText}>
-                        {strings.modalNoKantong}
-                      </ThemedText>
-                    </View>
-                  ) : (
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.kantongPillsRow}
-                    >
-                      {kantongs.map((k) => {
-                        const isSelected = k.id === selectedKantongId;
-                        return (
-                          <Pressable
-                            key={k.id}
-                            onPress={() => setSelectedKantongId(k.id)}
-                            style={[
-                              styles.kantongPill,
-                              isSelected && styles.kantongPillSelected,
-                            ]}
-                          >
-                            <Wallet
-                              size={14}
-                              color={isSelected ? '#FFFFFF' : colors.textSecondary}
-                            />
-                            <ThemedText
-                              variant="caption"
-                              weight={isSelected ? 'bold' : 'regular'}
-                              style={[
-                                styles.kantongPillText,
-                                isSelected && styles.kantongPillTextSelected,
-                              ]}
-                            >
-                              {k.name}
-                            </ThemedText>
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-                  )}
+                  <KantongSelector
+                    kantongs={kantongs}
+                    selectedKantongId={selectedKantongId}
+                    onSelectKantong={setSelectedKantongId}
+                    label={strings.modalSelectKantong}
+                    noKantongText={strings.modalNoKantong}
+                    colors={colors}
+                    styles={styles}
+                  />
 
                   {/* Transaction Type: Expense vs Income */}
-                  <ThemedText variant="caption" style={styles.fieldLabel}>
-                    {strings.modalTransactionType}
-                  </ThemedText>
-                  <View style={styles.typeSelectorRow}>
-                    <Pressable
-                      onPress={() => handleSelectTransaksiType('EXPENSE')}
-                      style={[
-                        styles.typeButton,
-                        transaksiType === 'EXPENSE' && styles.typeButtonExpenseSelected,
-                      ]}
-                    >
-                      <ArrowUpRight
-                        size={16}
-                        color={
-                          transaksiType === 'EXPENSE'
-                            ? '#FFFFFF'
-                            : colors.danger
-                        }
-                      />
-                      <ThemedText
-                        variant="caption"
-                        weight={transaksiType === 'EXPENSE' ? 'bold' : 'medium'}
-                        style={[
-                          styles.typeButtonText,
-                          transaksiType === 'EXPENSE' && styles.typeButtonTextSelected,
-                        ]}
-                      >
-                        {strings.modalExpense}
-                      </ThemedText>
-                    </Pressable>
-
-                    <Pressable
-                      onPress={() => handleSelectTransaksiType('INCOME')}
-                      style={[
-                        styles.typeButton,
-                        transaksiType === 'INCOME' && styles.typeButtonIncomeSelected,
-                      ]}
-                    >
-                      <ArrowDownLeft
-                        size={16}
-                        color={
-                          transaksiType === 'INCOME'
-                            ? '#FFFFFF'
-                            : colors.success
-                        }
-                      />
-                      <ThemedText
-                        variant="caption"
-                        weight={transaksiType === 'INCOME' ? 'bold' : 'medium'}
-                        style={[
-                          styles.typeButtonText,
-                          transaksiType === 'INCOME' && styles.typeButtonTextSelected,
-                        ]}
-                      >
-                        {strings.modalIncome}
-                      </ThemedText>
-                    </Pressable>
-                  </View>
+                  <TransactionTypeSelector
+                    activeType={transaksiType}
+                    onSelectType={handleSelectTransaksiType}
+                    label={strings.modalTransactionType}
+                    expenseLabel={strings.modalExpense}
+                    incomeLabel={strings.modalIncome}
+                    colors={colors}
+                    styles={styles}
+                  />
 
                   {/* Category Selection with Lucide Icons */}
-                  <ThemedText variant="caption" style={styles.fieldLabel}>
-                    {strings.modalCategory}
-                  </ThemedText>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoryPillsRow}
-                  >
-                    {(transaksiType === 'EXPENSE'
-                      ? EXPENSE_CATEGORIES
-                      : INCOME_CATEGORIES
-                    ).map((cat) => {
-                      const isSelected = transaksiCategory === cat;
-                      const defaultColor = transaksiType === 'EXPENSE'
-                        ? colors.accent
-                        : colors.success;
-                      const iconColor = isSelected ? '#FFFFFF' : defaultColor;
-
-                      return (
-                        <Pressable
-                          key={cat}
-                          onPress={() => setTransaksiCategory(cat)}
-                          style={[
-                            styles.categoryPill,
-                            isSelected &&
-                              (transaksiType === 'EXPENSE'
-                                ? styles.categoryPillExpenseSelected
-                                : styles.categoryPillIncomeSelected),
-                          ]}
-                        >
-                          {getCategoryIcon(cat, 15, iconColor)}
-                          <ThemedText
-                            variant="caption"
-                            weight={isSelected ? 'bold' : 'regular'}
-                            style={[
-                              styles.categoryPillText,
-                              isSelected && styles.categoryPillTextSelected,
-                            ]}
-                          >
-                            {cat}
-                          </ThemedText>
-                        </Pressable>
-                      );
-                    })}
-                  </ScrollView>
+                  <CategoryPicker
+                    activeType={transaksiType}
+                    activeCategory={transaksiCategory}
+                    onSelectCategory={setTransaksiCategory}
+                    label={strings.modalCategory}
+                    colors={colors}
+                    styles={styles}
+                  />
 
                   {/* Amount Input */}
                   <ThemedText variant="caption" style={styles.fieldLabel}>
@@ -887,6 +994,17 @@ export function ActionModal({ visible, mode, onClose }: ActionModalProps) {
                     placeholderTextColor={colors.textSecondary}
                     keyboardType="numeric"
                     style={[styles.input, styles.monoInput]}
+                  />
+
+                  <ThemedText variant="caption" style={styles.fieldLabel}>
+                    {strings.wishlistFundingSourceLabel}
+                  </ThemedText>
+                  <TextInput
+                    value={wishlistFundingSource}
+                    onChangeText={setWishlistFundingSource}
+                    placeholder={strings.wishlistFundingSourcePlaceholder}
+                    placeholderTextColor={colors.textSecondary}
+                    style={styles.input}
                   />
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>

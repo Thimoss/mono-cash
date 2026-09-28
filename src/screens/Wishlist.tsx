@@ -16,11 +16,9 @@ import {
   ArrowLeft,
   CheckCircle2,
   ExternalLink,
-  ImageIcon,
-  Plus,
-  RotateCcw,
   Sparkles,
   Trash2,
+  Wallet,
   X,
 } from 'lucide-react-native';
 
@@ -35,7 +33,7 @@ import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/consta
 import { useTheme } from '@/hooks/use-theme';
 import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { Wishlist, WishlistCardProps, WishlistScreenProps } from '@/types';
+import { ThemedButtonVariant, Wishlist, WishlistCardProps, WishlistScreenProps } from '@/types';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('id-ID', {
@@ -55,26 +53,86 @@ function formatDate(isoString: string): string {
 
 type WishlistFilter = 'ALL' | 'PENDING' | 'ACHIEVED';
 
+interface WishlistBadgeProps {
+  readonly isAchieved: boolean;
+  readonly isAffordable: boolean;
+  readonly progressPercent: number;
+  readonly colors: ColorTheme;
+  readonly styles: ReturnType<typeof getStyles>;
+  readonly achievedLabel: string;
+  readonly readyToBuyLabel: string;
+  readonly fundedLabel: string;
+}
+
+function WishlistBadge({
+  isAchieved,
+  isAffordable,
+  progressPercent,
+  colors,
+  styles,
+  achievedLabel,
+  readyToBuyLabel,
+  fundedLabel,
+}: Readonly<WishlistBadgeProps>) {
+  if (isAchieved) {
+    return (
+      <View style={styles.badgeAchieved}>
+        <CheckCircle2 size={12} color={colors.success} />
+        <ThemedText variant="caption" weight="bold" style={styles.badgeTextAchieved}>
+          {achievedLabel}
+        </ThemedText>
+      </View>
+    );
+  }
+
+  if (isAffordable) {
+    return (
+      <View style={styles.badgeAffordable}>
+        <Sparkles size={12} color={colors.success} />
+        <ThemedText variant="caption" weight="bold" style={styles.badgeTextAffordable}>
+          {readyToBuyLabel}
+        </ThemedText>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.badgeProgress}>
+      <ThemedText variant="caption" weight="bold" style={styles.badgeTextProgress}>
+        {`${progressPercent}% ${fundedLabel}`}
+      </ThemedText>
+    </View>
+  );
+}
+
 function WishlistCard({
   wishlist,
   index,
   totalBalance = 0,
   onToggleAchieve,
   onDelete,
-}: WishlistCardProps) {
+  onPress,
+}: Readonly<WishlistCardProps>) {
   const colors = useTheme();
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
-  const isAffordable = totalBalance >= wishlist.price;
-  const progressRatio = wishlist.price > 0 ? Math.min(1, totalBalance / wishlist.price) : 1;
+  const savedAmount = wishlist.saved_amount ?? 0;
+  const isAffordable = savedAmount >= wishlist.price;
+  const progressRatio = wishlist.price > 0 ? Math.min(1, savedAmount / wishlist.price) : 1;
   const progressPercent = Math.min(100, Math.round(progressRatio * 100));
-  const deficit = Math.max(0, wishlist.price - totalBalance);
+  const deficit = Math.max(0, wishlist.price - savedAmount);
 
-  const cardStyle = wishlist.isAchieved
-    ? styles.cardAchieved
-    : isAffordable
-    ? styles.cardAffordable
-    : styles.cardNormal;
+  const getCardStyle = () => {
+    if (wishlist.isAchieved) return styles.cardAchieved;
+    if (isAffordable) return styles.cardAffordable;
+    return styles.cardNormal;
+  };
+
+  const getAchieveButtonVariant = (): ThemedButtonVariant => {
+    if (wishlist.isAchieved) return 'ghost';
+    if (isAffordable) return 'success';
+    return 'outline';
+  };
 
   const handleOpenLink = () => {
     if (!wishlist.purchaseLink) return;
@@ -84,135 +142,126 @@ function WishlistCard({
     Linking.openURL(url).catch(() => {});
   };
 
-  const renderBadge = () => {
-    if (wishlist.isAchieved) {
-      return (
-        <View style={styles.badgeAchieved}>
-          <CheckCircle2 size={12} color={colors.success} />
-          <ThemedText variant="caption" weight="bold" style={styles.badgeTextAchieved}>
-            {t('wishlistAchieved')}
-          </ThemedText>
-        </View>
-      );
-    }
-
-    if (isAffordable) {
-      return (
-        <View style={styles.badgeAffordable}>
-          <Sparkles size={12} color={colors.success} />
-          <ThemedText variant="caption" weight="bold" style={styles.badgeTextAffordable}>
-            {t('wishlistReadyToBuy')}
-          </ThemedText>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.badgeProgress}>
-        <ThemedText variant="caption" weight="bold" style={styles.badgeTextProgress}>
-          {`${progressPercent}% ${t('wishlistFunded')}`}
-        </ThemedText>
-      </View>
-    );
-  };
-
   return (
     <Animated.View
       entering={FadeInDown.delay(index * 50).duration(300).springify().damping(15)}
-      style={[styles.cardContainer, cardStyle]}
+      style={[styles.cardContainer, getCardStyle()]}
     >
-      {/* Top Header: Title and Badge */}
-      <View style={styles.cardHeader}>
-        <View style={styles.cardTitleBox}>
-          <ThemedText
-            weight="bold"
-            style={[
-              styles.cardTitle,
-              wishlist.isAchieved && styles.titleAchieved,
-            ]}
-          >
-            {wishlist.title.toUpperCase()}
-          </ThemedText>
-          {wishlist.description.trim().length > 0 && (
-            <ThemedText variant="caption" style={styles.cardDescription}>
-              {wishlist.description}
+      <Pressable
+        onPress={() => onPress?.(wishlist)}
+        style={styles.cardPressable}
+        android_ripple={{ color: 'rgba(255, 255, 255, 0.05)' }}
+      >
+        {/* Top Header: Title and Badge */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardTitleBox}>
+            <ThemedText
+              weight="bold"
+              style={[
+                styles.cardTitle,
+                wishlist.isAchieved && styles.titleAchieved,
+              ]}
+            >
+              {wishlist.title.toUpperCase()}
             </ThemedText>
-          )}
-        </View>
-        {renderBadge()}
-      </View>
-
-      {/* Image Preview or Fallback Box */}
-      {wishlist.imageUrl ? (
-        <View style={styles.imageWrapper}>
-          <Image
-            source={{ uri: wishlist.imageUrl }}
-            style={styles.cardImage}
-            resizeMode="cover"
+            {wishlist.description.trim().length > 0 && (
+              <ThemedText variant="caption" style={styles.cardDescription}>
+                {wishlist.description}
+              </ThemedText>
+            )}
+            {Boolean(wishlist.funding_source) && (
+              <View style={styles.fundingSourceBadge}>
+                <Wallet size={11} color={colors.accent} />
+                <ThemedText variant="caption" style={styles.fundingSourceText}>
+                  {wishlist.funding_source}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+          <WishlistBadge
+            isAchieved={wishlist.isAchieved}
+            isAffordable={isAffordable}
+            progressPercent={progressPercent}
+            colors={colors}
+            styles={styles}
+            achievedLabel={t('wishlistAchieved')}
+            readyToBuyLabel={t('wishlistReadyToBuy')}
+            fundedLabel={t('wishlistFunded')}
           />
         </View>
-      ) : null}
 
-      <View style={styles.cardDivider} />
-
-      {/* Price & Target Info */}
-      <View style={styles.priceRow}>
-        <View>
-          <ThemedText variant="caption" style={styles.priceLabel}>
-            {t('wishlistTargetPrice')}
-          </ThemedText>
-          <ThemedText
-            variant="amount"
-            style={[
-              styles.amountText,
-              wishlist.isAchieved && styles.amountTextAchieved,
-            ]}
-          >
-            {formatCurrency(wishlist.price)}
-          </ThemedText>
-        </View>
-
-        {wishlist.purchaseLink ? (
-          <Pressable onPress={handleOpenLink} style={styles.linkButton} hitSlop={8}>
-            <ExternalLink size={13} color={colors.accent} />
-            <ThemedText variant="caption" weight="semibold" style={styles.linkText}>
-              {t('wishlistStoreLink')}
-            </ThemedText>
-          </Pressable>
-        ) : null}
-      </View>
-
-      {/* Progress Bar & Stackup Comparison */}
-      <View style={styles.progressSection}>
-        <View style={styles.progressHeaderRow}>
-          <ThemedText variant="caption" style={styles.progressLabel}>
-            {wishlist.isAchieved
-              ? `${t('wishlistAcquiredOn')} ${formatDate(wishlist.createdAt)}`
-              : `${t('wishlistWalletCoverage')}: ${progressPercent}%`}
-          </ThemedText>
-          {!wishlist.isAchieved && (
-            <ThemedText
-              variant="caption"
-              weight="bold"
-              style={isAffordable ? styles.fundedSuccessText : styles.deficitText}
-            >
-              {isAffordable ? t('wishlistFullyFunded') : `${t('wishlistDeficit')}: ${formatCurrency(deficit)}`}
-            </ThemedText>
-          )}
-        </View>
-
-        {!wishlist.isAchieved && (
-          <View style={styles.progressBarTrack}>
-            <View
-              style={[
-                styles.progressBarFill,
-                { width: `${progressPercent}%` },
-                isAffordable && styles.progressBarFillComplete,
-              ]}
+        {/* Image Preview or Fallback Box */}
+        {wishlist.imageUrl ? (
+          <View style={styles.imageWrapper}>
+            <Image
+              source={{ uri: wishlist.imageUrl }}
+              style={styles.cardImage}
+              resizeMode="cover"
             />
           </View>
-        )}
-      </View>
+        ) : null}
+
+        <View style={styles.cardDivider} />
+
+        {/* Price & Target Info */}
+        <View style={styles.priceRow}>
+          <View>
+            <ThemedText variant="caption" style={styles.priceLabel}>
+              {t('wishlistTargetPrice')}
+            </ThemedText>
+            <ThemedText
+              variant="amount"
+              style={[
+                styles.amountText,
+                wishlist.isAchieved && styles.amountTextAchieved,
+              ]}
+            >
+              {formatCurrency(wishlist.price)}
+            </ThemedText>
+          </View>
+
+          {wishlist.purchaseLink ? (
+            <Pressable onPress={handleOpenLink} style={styles.linkButton} hitSlop={8}>
+              <ExternalLink size={13} color={colors.accent} />
+              <ThemedText variant="caption" weight="semibold" style={styles.linkText}>
+                {t('wishlistStoreLink')}
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
+
+        {/* Progress Bar & Stackup Comparison */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeaderRow}>
+            <ThemedText variant="caption" style={styles.progressLabel}>
+              {wishlist.isAchieved
+                ? `${t('wishlistAcquiredOn')} ${formatDate(wishlist.createdAt)}`
+                : `${formatCurrency(savedAmount)} / ${formatCurrency(wishlist.price)} (${progressPercent}%)`}
+            </ThemedText>
+            {!wishlist.isAchieved && (
+              <ThemedText
+                variant="caption"
+                weight="bold"
+                style={isAffordable ? styles.fundedSuccessText : styles.deficitText}
+              >
+                {isAffordable ? t('wishlistFullyFunded') : `${t('wishlistDeficit')}: ${formatCurrency(deficit)}`}
+              </ThemedText>
+            )}
+          </View>
+
+          {!wishlist.isAchieved && (
+            <View style={styles.progressBarTrack}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${progressPercent}%` },
+                  isAffordable && styles.progressBarFillComplete,
+                ]}
+              />
+            </View>
+          )}
+        </View>
+      </Pressable>
 
       {/* Card Actions */}
       <View style={styles.cardActionsRow}>
@@ -220,7 +269,7 @@ function WishlistCard({
           <ThemedButton
             title={wishlist.isAchieved ? t('wishlistMarkUnfinished') : t('wishlistMarkAchieved')}
             size="sm"
-            variant={wishlist.isAchieved ? 'ghost' : isAffordable ? 'success' : 'outline'}
+            variant={getAchieveButtonVariant()}
             onPress={() => onToggleAchieve(wishlist)}
             style={styles.achieveButton}
           />
@@ -240,7 +289,7 @@ function WishlistCard({
   );
 }
 
-export default function WishlistScreen({ onBack }: WishlistScreenProps) {
+export default function WishlistScreen({ onBack, onSelectWishlist }: Readonly<WishlistScreenProps>) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
   const { t } = useTranslation();
@@ -413,7 +462,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
         <ThemedButton
           title={t('wishlistNewTarget')}
           variant="primary"
-          size="md"
+          size="lg"
           style={styles.actionButton}
           onPress={() => setIsActionModalOpen(true)}
         />
@@ -511,6 +560,7 @@ export default function WishlistScreen({ onBack }: WishlistScreenProps) {
             totalBalance={totalBalance}
             onToggleAchieve={handleToggleAchieve}
             onDelete={(w) => setItemToDelete(w)}
+            onPress={onSelectWishlist}
           />
         )}
         ListHeaderComponent={renderHeader}
@@ -607,7 +657,7 @@ const getStyles = (colors: ColorTheme) =>
     },
     listContent: {
       paddingHorizontal: Spacing.three,
-      paddingBottom: Spacing.six,
+      paddingBottom: Spacing.six * 2,
     },
     headerSection: {
       paddingTop: Spacing.two,
@@ -817,6 +867,27 @@ const getStyles = (colors: ColorTheme) =>
     cardDescription: {
       color: colors.textSecondary,
       marginTop: 4,
+    },
+    cardPressable: {
+      borderRadius: BorderRadius.md,
+    },
+    fundingSourceBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.backgroundSelected,
+      paddingVertical: 2,
+      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.sm,
+      alignSelf: 'flex-start',
+      marginTop: 6,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    fundingSourceText: {
+      color: colors.textSecondary,
+      fontSize: 11,
+      fontFamily: Typography.mono,
     },
     badgeAchieved: {
       flexDirection: 'row',

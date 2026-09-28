@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   LayoutDashboard,
   Receipt,
@@ -15,6 +15,7 @@ import Dashboard from '@/screens/Dashboard';
 import KantongDetail from '@/screens/KantongDetail';
 import SettingsScreen from '@/screens/Settings';
 import WishlistScreen from '@/screens/Wishlist';
+import WishlistDetail from '@/screens/WishlistDetail';
 import { useTranslation } from '@/hooks/use-translation';
 import { TranslationKey } from '@/constants/translations';
 import { useTheme } from '@/hooks/use-theme';
@@ -53,7 +54,9 @@ const NAV_TABS: NavTabItem[] = [
 export default function HomeScreen() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('DASHBOARD');
   const [selectedKantongId, setSelectedKantongId] = useState<string | null>(null);
+  const [selectedWishlistId, setSelectedWishlistId] = useState<string | null>(null);
 
+  const insets = useSafeAreaInsets();
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
   const { t } = useTranslation();
@@ -61,6 +64,9 @@ export default function HomeScreen() {
   const handleSelectScreen = (screen: ActiveScreen) => {
     if (screen === 'DASHBOARD') {
       setSelectedKantongId(null);
+    }
+    if (screen === 'WISHLIST') {
+      setSelectedWishlistId(null);
     }
     setActiveScreen(screen);
   };
@@ -105,7 +111,36 @@ export default function HomeScreen() {
       case 'BILLS':
         return <BillsScreen onBack={() => handleSelectScreen('DASHBOARD')} />;
       case 'WISHLIST':
-        return <WishlistScreen onBack={() => handleSelectScreen('DASHBOARD')} />;
+        return (
+          <WishlistScreen
+            onBack={() => handleSelectScreen('DASHBOARD')}
+            onSelectWishlist={(wishlist) => {
+              setSelectedWishlistId(wishlist.id);
+              setActiveScreen('WISHLIST_DETAIL');
+            }}
+          />
+        );
+      case 'WISHLIST_DETAIL':
+        if (selectedWishlistId) {
+          return (
+            <WishlistDetail
+              wishlistId={selectedWishlistId}
+              onBack={() => {
+                setSelectedWishlistId(null);
+                setActiveScreen('WISHLIST');
+              }}
+            />
+          );
+        }
+        return (
+          <WishlistScreen
+            onBack={() => handleSelectScreen('DASHBOARD')}
+            onSelectWishlist={(wishlist) => {
+              setSelectedWishlistId(wishlist.id);
+              setActiveScreen('WISHLIST_DETAIL');
+            }}
+          />
+        );
       case 'SETTINGS':
         return <SettingsScreen onBack={() => handleSelectScreen('DASHBOARD')} />;
       default:
@@ -119,18 +154,22 @@ export default function HomeScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
-        <SafeAreaView
-          edges={['bottom', 'left', 'right']}
+        <View
           style={[
-            styles.navBarWrapper,
-            { backgroundColor: colors.card, borderTopColor: colors.cardBorder },
+            styles.floatingNavBarContainer,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.cardBorder,
+              bottom: Math.max(24, insets.bottom),
+            },
           ]}
         >
           <View style={styles.navBar}>
             {NAV_TABS.map((tab) => {
               const isActive =
                 activeScreen === tab.key ||
-                (tab.key === 'DASHBOARD' && activeScreen === 'KANTONG_DETAIL');
+                (tab.key === 'DASHBOARD' && activeScreen === 'KANTONG_DETAIL') ||
+                (tab.key === 'WISHLIST' && activeScreen === 'WISHLIST_DETAIL');
               const activeColor = colors.accent;
               const inactiveColor = colors.textSecondary;
               const iconColor = isActive ? activeColor : inactiveColor;
@@ -142,7 +181,12 @@ export default function HomeScreen() {
                   style={styles.navTab}
                   hitSlop={6}
                 >
-                  <View style={[styles.navIconContainer, isActive && styles.navIconActiveContainer]}>
+                  <View
+                    style={[
+                      styles.navIconContainer,
+                      isActive && styles.navIconActiveContainer,
+                    ]}
+                  >
                     {tab.icon(iconColor, 19)}
                   </View>
                   <ThemedText
@@ -159,7 +203,7 @@ export default function HomeScreen() {
               );
             })}
           </View>
-        </SafeAreaView>
+        </View>
       </View>
     </SafeAreaProvider>
   );
@@ -172,14 +216,23 @@ const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
   },
-  navBarWrapper: {
-    borderTopWidth: 1,
+  floatingNavBarContainer: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    borderRadius: BorderRadius['2xl'],
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
   },
   navBar: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.two,
-    paddingTop: Spacing.one * 1.5,
-    paddingBottom: Spacing.one,
+    paddingVertical: Spacing.one * 1.5,
     justifyContent: 'space-around',
     alignItems: 'center',
   },
@@ -187,18 +240,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2,
     gap: 3,
   },
   navIconContainer: {
-    width: 36,
-    height: 28,
     borderRadius: BorderRadius.full,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   navIconActiveContainer: {
     backgroundColor: 'rgba(99, 102, 241, 0.14)',
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
   },
   navText: {
     fontSize: 10,

@@ -121,7 +121,7 @@ function getPayVariant(
   return 'outline';
 }
 
-function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
+function TagihanCard({ tagihan, index, onPayPress }: Readonly<TagihanCardProps>) {
   const colors = useTheme();
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -271,7 +271,7 @@ function TagihanCard({ tagihan, index, onPayPress }: TagihanCardProps) {
   );
 }
 
-export default function BillsScreen({ onBack }: BillsScreenProps) {
+export default function BillsScreen({ onBack }: Readonly<BillsScreenProps>) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
   const { t } = useTranslation();
@@ -410,7 +410,7 @@ export default function BillsScreen({ onBack }: BillsScreenProps) {
         <ThemedButton
           title={t('billsNewBill')}
           variant="primary"
-          size="md"
+          size="lg"
           style={styles.actionButton}
           onPress={() => setIsActionModalOpen(true)}
         />
@@ -619,7 +619,7 @@ const getStyles = (colors: ColorTheme) =>
     },
     listContent: {
       paddingHorizontal: Spacing.three,
-      paddingBottom: Spacing.six,
+      paddingBottom: Spacing.six * 2,
     },
     headerSection: {
       paddingTop: Spacing.two,

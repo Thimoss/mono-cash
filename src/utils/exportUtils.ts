@@ -28,13 +28,13 @@ export function escapeCsvField(val: unknown): string {
     return val ? 'TRUE' : 'FALSE';
   }
 
-  if (typeof val === 'number') {
+  if (typeof val === 'number' || typeof val === 'bigint') {
     return String(val);
   }
 
-  const str = String(val);
+  const str = typeof val === 'string' ? val : JSON.stringify(val);
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-    return `"${str.replace(/"/g, '""')}"`;
+    return `"${str.replaceAll('"', '""')}"`;
   }
 
   return str;
@@ -139,6 +139,8 @@ export function formatWishlistsToCsv(wishlists: Wishlist[]): string {
     'PRICE',
     'IMAGE_URL',
     'PURCHASE_LINK',
+    'FUNDING_SOURCE',
+    'SAVED_AMOUNT',
     'IS_ACHIEVED',
     'CREATED_AT',
   ];
@@ -150,6 +152,8 @@ export function formatWishlistsToCsv(wishlists: Wishlist[]): string {
     escapeCsvField(w.price),
     escapeCsvField(w.imageUrl),
     escapeCsvField(w.purchaseLink ?? ''),
+    escapeCsvField(w.funding_source ?? ''),
+    escapeCsvField(w.saved_amount ?? 0),
     escapeCsvField(w.isAchieved),
     escapeCsvField(w.createdAt),
   ]);

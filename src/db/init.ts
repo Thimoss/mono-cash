@@ -9,6 +9,7 @@ import {
   UpdateTransaksiInput,
   UpdateWishlistInput,
   Wishlist,
+  WishlistProgressLog,
 } from '@/types';
 
 const DB_NAME = 'monocash.db';
@@ -33,6 +34,8 @@ interface WishlistRow {
   price: number;
   imageUrl: string;
   purchaseLink: string | null;
+  funding_source: string | null;
+  saved_amount: number | null;
   isAchieved: number;
   createdAt: string;
 }
@@ -58,15 +61,15 @@ function mapWishlistRow(row: WishlistRow): Wishlist {
     price: row.price,
     imageUrl: row.imageUrl,
     purchaseLink: row.purchaseLink,
+    funding_source: row.funding_source ?? null,
+    saved_amount: Number(row.saved_amount ?? 0),
     isAchieved: Boolean(row.isAchieved),
     createdAt: row.createdAt,
   };
 }
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (!databasePromise) {
-    databasePromise = SQLite.openDatabaseAsync(DB_NAME);
-  }
+  databasePromise ??= SQLite.openDatabaseAsync(DB_NAME);
   return databasePromise;
 }
 
@@ -115,8 +118,18 @@ export async function initDatabase(dbInstance?: SQLite.SQLiteDatabase): Promise<
       price REAL NOT NULL,
       imageUrl TEXT NOT NULL,
       purchaseLink TEXT,
+      funding_source TEXT DEFAULT NULL,
+      saved_amount REAL NOT NULL DEFAULT 0,
       isAchieved INTEGER NOT NULL DEFAULT 0,
       createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS wishlist_progress_logs (
+      id TEXT PRIMARY KEY NOT NULL,
+      wishlist_id TEXT NOT NULL,
+      amount_added REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (wishlist_id) REFERENCES wishlist(id) ON DELETE CASCADE
     );
 
     CREATE INDEX IF NOT EXISTS idx_transaksi_kantongId ON transaksi(kantongId);
@@ -125,11 +138,26 @@ export async function initDatabase(dbInstance?: SQLite.SQLiteDatabase): Promise<
     CREATE INDEX IF NOT EXISTS idx_tagihan_dueDate ON tagihan(dueDate);
     CREATE INDEX IF NOT EXISTS idx_tagihan_isPaid ON tagihan(isPaid);
     CREATE INDEX IF NOT EXISTS idx_wishlist_isAchieved ON wishlist(isAchieved);
+    CREATE INDEX IF NOT EXISTS idx_wishlist_progress_logs_wishlist_id ON wishlist_progress_logs(wishlist_id);
+    CREATE INDEX IF NOT EXISTS idx_wishlist_progress_logs_created_at ON wishlist_progress_logs(created_at);
   `);
 
   // Migration: Ensure category column exists in transaksi table on existing SQLite databases
   try {
     await db.execAsync(`ALTER TABLE transaksi ADD COLUMN category TEXT NOT NULL DEFAULT 'GENERAL';`);
+  } catch {
+    // Column already exists, safe to ignore
+  }
+
+  // Migration: Ensure funding_source and saved_amount exist in wishlist table on existing databases
+  try {
+    await db.execAsync(`ALTER TABLE wishlist ADD COLUMN funding_source TEXT;`);
+  } catch {
+    // Column already exists, safe to ignore
+  }
+
+  try {
+    await db.execAsync(`ALTER TABLE wishlist ADD COLUMN saved_amount REAL NOT NULL DEFAULT 0;`);
   } catch {
     // Column already exists, safe to ignore
   }
@@ -193,7 +221,7 @@ export async function updateKantong(
   const updated: Kantong = {
     id: current.id,
     name: input.name !== undefined ? input.name.trim() : current.name,
-    balance: input.balance !== undefined ? input.balance : current.balance,
+    balance: input.balance ?? current.balance,
     createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),
   };
@@ -301,12 +329,12 @@ export async function updateTransaksi(
 
   const updated: Transaksi = {
     id: current.id,
-    kantongId: input.kantongId !== undefined ? input.kantongId : current.kantongId,
-    amount: input.amount !== undefined ? input.amount : current.amount,
-    type: input.type !== undefined ? input.type : current.type,
+    kantongId: input.kantongId ?? current.kantongId,
+    amount: input.amount ?? current.amount,
+    type: input.type ?? current.type,
     description: input.description !== undefined ? input.description.trim() : current.description,
     category: input.category !== undefined ? input.category.trim() : current.category,
-    date: input.date !== undefined ? input.date : current.date,
+    date: input.date ?? current.date,
     createdAt: current.createdAt,
   };
 
@@ -452,8 +480,8 @@ export async function createWishlist(
   const db = dbInstance ?? (await getDatabase());
 
   await db.runAsync(
-    `INSERT INTO wishlist (id, title, description, price, imageUrl, purchaseLink, isAchieved, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+    `INSERT INTO wishlist (id, title, description, price, imageUrl, purchaseLink, funding_source, saved_amount, isAchieved, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     [
       wishlist.id,
       wishlist.title,
@@ -461,6 +489,8 @@ export async function createWishlist(
       wishlist.price,
       wishlist.imageUrl,
       wishlist.purchaseLink,
+      wishlist.funding_source ?? null,
+      wishlist.saved_amount ?? 0,
       wishlist.isAchieved ? 1 : 0,
       wishlist.createdAt,
     ]
@@ -476,7 +506,7 @@ export async function getWishlistById(
   const db = dbInstance ?? (await getDatabase());
 
   const row = await db.getFirstAsync<WishlistRow>(
-    `SELECT id, title, description, price, imageUrl, purchaseLink, isAchieved, createdAt
+    `SELECT id, title, description, price, imageUrl, purchaseLink, funding_source, saved_amount, isAchieved, createdAt
      FROM wishlist
      WHERE id = ?;`,
     [id]
@@ -491,7 +521,7 @@ export async function getAllWishlist(
   const db = dbInstance ?? (await getDatabase());
 
   const rows = await db.getAllAsync<WishlistRow>(
-    `SELECT id, title, description, price, imageUrl, purchaseLink, isAchieved, createdAt
+    `SELECT id, title, description, price, imageUrl, purchaseLink, funding_source, saved_amount, isAchieved, createdAt
      FROM wishlist
      ORDER BY isAchieved ASC, createdAt DESC;`
   );
@@ -513,18 +543,20 @@ export async function updateWishlist(
 
   const updated: Wishlist = {
     id: current.id,
-    title: input.title !== undefined ? input.title : current.title,
-    description: input.description !== undefined ? input.description : current.description,
-    price: input.price !== undefined ? input.price : current.price,
-    imageUrl: input.imageUrl !== undefined ? input.imageUrl : current.imageUrl,
+    title: input.title ?? current.title,
+    description: input.description ?? current.description,
+    price: input.price ?? current.price,
+    imageUrl: input.imageUrl ?? current.imageUrl,
     purchaseLink: input.purchaseLink !== undefined ? input.purchaseLink : current.purchaseLink,
-    isAchieved: input.isAchieved !== undefined ? input.isAchieved : current.isAchieved,
+    funding_source: input.funding_source !== undefined ? input.funding_source : current.funding_source,
+    saved_amount: input.saved_amount ?? current.saved_amount,
+    isAchieved: input.isAchieved ?? current.isAchieved,
     createdAt: current.createdAt,
   };
 
   await db.runAsync(
     `UPDATE wishlist
-     SET title = ?, description = ?, price = ?, imageUrl = ?, purchaseLink = ?, isAchieved = ?
+     SET title = ?, description = ?, price = ?, imageUrl = ?, purchaseLink = ?, funding_source = ?, saved_amount = ?, isAchieved = ?
      WHERE id = ?;`,
     [
       updated.title,
@@ -532,6 +564,8 @@ export async function updateWishlist(
       updated.price,
       updated.imageUrl,
       updated.purchaseLink,
+      updated.funding_source ?? null,
+      updated.saved_amount ?? 0,
       updated.isAchieved ? 1 : 0,
       id,
     ]
@@ -550,9 +584,46 @@ export async function deleteWishlist(
   return result.changes > 0;
 }
 
+// ---------------------------------------------------------------------------
+// CRUD Helpers: Wishlist Progress Logs
+// ---------------------------------------------------------------------------
+
+export async function createWishlistProgressLog(
+  log: WishlistProgressLog,
+  dbInstance?: SQLite.SQLiteDatabase
+): Promise<WishlistProgressLog> {
+  const db = dbInstance ?? (await getDatabase());
+
+  await db.runAsync(
+    `INSERT INTO wishlist_progress_logs (id, wishlist_id, amount_added, created_at)
+     VALUES (?, ?, ?, ?);`,
+    [log.id, log.wishlist_id, log.amount_added, log.created_at]
+  );
+
+  return log;
+}
+
+export async function getWishlistProgressLogs(
+  wishlistId: string,
+  dbInstance?: SQLite.SQLiteDatabase
+): Promise<WishlistProgressLog[]> {
+  const db = dbInstance ?? (await getDatabase());
+
+  const rows = await db.getAllAsync<WishlistProgressLog>(
+    `SELECT id, wishlist_id, amount_added, created_at
+     FROM wishlist_progress_logs
+     WHERE wishlist_id = ?
+     ORDER BY created_at DESC;`,
+    [wishlistId]
+  );
+
+  return rows;
+}
+
 export async function resetDatabase(dbInstance?: SQLite.SQLiteDatabase): Promise<void> {
   const db = dbInstance ?? (await getDatabase());
   await db.execAsync(`
+    DROP TABLE IF EXISTS wishlist_progress_logs;
     DROP TABLE IF EXISTS transaksi;
     DROP TABLE IF EXISTS tagihan;
     DROP TABLE IF EXISTS wishlist;

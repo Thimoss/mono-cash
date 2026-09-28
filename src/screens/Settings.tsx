@@ -38,7 +38,7 @@ import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Language, SettingsScreenProps, ThemeMode } from '@/types';
 
-export default function SettingsScreen({ onBack }: SettingsScreenProps) {
+export default function SettingsScreen({ onBack }: Readonly<SettingsScreenProps>) {
   const colors = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
@@ -108,19 +108,22 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
       {/* Top App Bar */}
       <View style={styles.appBar}>
-        <View style={styles.appBarLeft}>
-          {onBack && (
-            <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
-              <ArrowLeft size={16} color={colors.text} />
-              <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-                {t('navDashboard').toUpperCase()}
-              </ThemedText>
-            </Pressable>
-          )}
-          <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
-            {t('settingsPageTitle')}
-          </ThemedText>
-        </View>
+        {onBack ? (
+          <Pressable
+            onPress={onBack}
+            style={styles.backButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <ArrowLeft size={20} color={colors.text} />
+          </Pressable>
+        ) : (
+          <View style={styles.backButtonPlaceholder} />
+        )}
+        <ThemedText weight="bold" style={styles.appBarTitle}>
+          {t('settingsPageTitle')}
+        </ThemedText>
         <View style={styles.versionBadge}>
           <Info size={12} color={colors.textSecondary} />
           <ThemedText variant="caption" style={styles.versionText}>
@@ -131,7 +134,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Feedback Alerts */}
-        {resetFeedback && (
+        {Boolean(resetFeedback) && (
           <Animated.View
             entering={FadeInDown.duration(300).springify().damping(18)}
             style={styles.feedbackSuccessCard}
@@ -381,11 +384,12 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
           <ThemedButton
             title={isExporting ? t('settingsExportGenerating') : t('settingsExportBtn')}
             variant="outline"
-            size="md"
+            size="lg"
             loading={isExporting}
+            style={styles.actionButton}
             onPress={handleExportData}
           />
-          {exportFeedback && (
+          {Boolean(exportFeedback) && (
             <ThemedText variant="caption" style={styles.exportFeedbackText}>
               {exportFeedback}
             </ThemedText>
@@ -412,7 +416,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             title={t('settingsResetBtn')}
             variant="danger"
             size="lg"
-            style={styles.resetButton}
+            style={[styles.actionButton, styles.resetButton]}
             onPress={() => setIsResetModalVisible(true)}
           />
         </View>
@@ -448,7 +452,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
             </View>
 
             <View style={styles.modalBody}>
-              {resetError && (
+              {Boolean(resetError) && (
                 <View style={styles.errorBox}>
                   <ThemedText variant="caption" style={styles.errorText}>
                     {resetError}
@@ -511,40 +515,35 @@ const getStyles = (colors: ColorTheme) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two * 1.25,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
       borderBottomWidth: 1,
       borderBottomColor: colors.cardBorder,
     },
-    appBarLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.two,
-    },
-    navButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.one * 1.5,
-      paddingVertical: Spacing.one,
-      paddingHorizontal: Spacing.two,
+    backButton: {
+      width: 36,
+      height: 36,
       borderRadius: BorderRadius.md,
       backgroundColor: colors.backgroundSelected,
       borderWidth: 1,
       borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    navButtonText: {
-      color: colors.text,
-      letterSpacing: 0.5,
+    backButtonPlaceholder: {
+      width: 36,
+      height: 36,
     },
     appBarTitle: {
-      letterSpacing: 1,
+      fontSize: Typography.scale.md.fontSize,
       color: colors.text,
+      letterSpacing: 0.3,
     },
     versionBadge: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      paddingVertical: 2,
+      paddingVertical: 4,
       paddingHorizontal: Spacing.two,
       borderRadius: BorderRadius.full,
       backgroundColor: colors.backgroundSelected,
@@ -557,7 +556,7 @@ const getStyles = (colors: ColorTheme) =>
     },
     content: {
       padding: Spacing.three,
-      paddingBottom: Spacing.six * 1.5,
+      paddingBottom: Spacing.six * 2,
       gap: Spacing.four,
     },
     feedbackSuccessCard: {
@@ -723,6 +722,13 @@ const getStyles = (colors: ColorTheme) =>
       color: colors.danger,
       fontSize: Typography.scale.sm.fontSize,
       letterSpacing: 0.5,
+    },
+    actionButton: {
+      height: 48,
+      paddingVertical: 12,
+      paddingHorizontal: Spacing.three,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     resetButton: {
       marginTop: Spacing.one,

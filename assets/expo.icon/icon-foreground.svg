@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- M Pillar Indigo Gradient -->
+    <linearGradient id="fgIndigoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+
+    <!-- Cash Flow & Growth Gradient -->
+    <linearGradient id="fgGrowthGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="60%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+
+    <!-- Outer Orbit Ring Gradient -->
+    <linearGradient id="fgLoopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A5B4FC"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+
+    <!-- Emerald Glow Filter -->
+    <filter id="fgSoftGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Fully Transparent 1024x1024 Square Canvas -->
+  <!-- Perfectly centered vector symbol: geometric bounds exactly centered around (512, 512) -->
+  <g id="monoCashSymbol" transform="translate(0, 4)">
+    <!-- Outer Circulation Arc (Center 512, 512, Radius 240) -->
+    <path d="M 330 632 A 240 240 0 1 1 694 632" 
+          fill="none" 
+          stroke="url(#fgLoopGrad)" 
+          stroke-width="28" 
+          stroke-linecap="round" 
+          opacity="0.45"/>
+
+    <!-- Main Geometric 'M' Monogram (X: 340 to 684, Y: 338 to 680, Center: ~512, 509) -->
+    <path d="M 340 680 L 340 376 C 340 344 368 324 398 340 L 512 422 L 626 340 C 656 324 684 344 684 376 L 684 680" 
+          fill="none" 
+          stroke="url(#fgIndigoGrad)" 
+          stroke-width="56" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+
+    <!-- Flowing Wave / Cash Flow Arc -->
+    <path d="M 308 518 C 368 428 458 408 512 478 C 570 558 660 518 720 398" 
+          fill="none" 
+          stroke="url(#fgGrowthGrad)" 
+          stroke-width="36" 
+          stroke-linecap="round"/>
+
+    <!-- Emerald Growth Node Indicator -->
+    <circle cx="720" cy="398" r="22" fill="#10B981" filter="url(#fgSoftGlow)"/>
+    <circle cx="720" cy="398" r="10" fill="#FFFFFF"/>
+
+    <!-- Balance Node -->
+    <circle cx="512" cy="478" r="18" fill="#F3F4F6"/>
+    <circle cx="512" cy="478" r="8" fill="#6366F1"/>
+  </g>
+</svg>

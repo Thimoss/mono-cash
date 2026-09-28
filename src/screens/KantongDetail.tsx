@@ -13,6 +13,24 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import {
+  ArrowDownLeft,
+  ArrowLeft,
+  ArrowUpRight,
+  Briefcase,
+  Car,
+  Edit2,
+  Inbox,
+  Laptop,
+  ShieldAlert,
+  ShoppingBag,
+  Trash2,
+  TrendingUp,
+  Utensils,
+  Wallet,
+  X,
+  Zap,
+} from 'lucide-react-native';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, MonospaceFamily, Spacing, Typography } from '@/constants/theme';
@@ -42,7 +60,45 @@ function formatDate(isoString: string): string {
   }
 }
 
-export default function KantongDetail({ kantongId, onBack }: KantongDetailProps) {
+function getTransactionCategoryIcon(
+  category: string | null | undefined,
+  type: 'INCOME' | 'EXPENSE',
+  size = 16,
+  color = '#6B7280'
+) {
+  const cat = category?.toUpperCase() || '';
+  if (cat.includes('FOOD') || cat.includes('BEVERAGE') || cat.includes('MAKAN')) {
+    return <Utensils size={size} color={color} />;
+  }
+  if (cat.includes('BILL') || cat.includes('UTILITIES') || cat.includes('LISTRIK') || cat.includes('TAGIHAN')) {
+    return <Zap size={size} color={color} />;
+  }
+  if (cat.includes('DEBT') || cat.includes('OBLIGATION') || cat.includes('HUTANG') || cat.includes('CICILAN')) {
+    return <ShieldAlert size={size} color={color} />;
+  }
+  if (cat.includes('TRANSPORT') || cat.includes('KENDARAAN') || cat.includes('BENSIN')) {
+    return <Car size={size} color={color} />;
+  }
+  if (cat.includes('LIFESTYLE') || cat.includes('HOBBY') || cat.includes('BELANJA') || cat.includes('SHOPPING')) {
+    return <ShoppingBag size={size} color={color} />;
+  }
+  if (cat.includes('SALARY') || cat.includes('GAJI')) {
+    return <Briefcase size={size} color={color} />;
+  }
+  if (cat.includes('FREELANCE') || cat.includes('PROJECT')) {
+    return <Laptop size={size} color={color} />;
+  }
+  if (cat.includes('INVEST') || cat.includes('SAHAM') || cat.includes('CRYPTO')) {
+    return <TrendingUp size={size} color={color} />;
+  }
+  return type === 'INCOME' ? (
+    <ArrowDownLeft size={size} color={color} />
+  ) : (
+    <ArrowUpRight size={size} color={color} />
+  );
+}
+
+export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDetailProps>) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
   const { t } = useTranslation();
@@ -56,7 +112,7 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
 
   const kantongTransaksis = useMemo(() => {
     return transaksis
-      .filter((t) => t.kantongId === kantongId)
+      .filter((item) => item.kantongId === kantongId)
       .sort((a, b) => {
         const timeA = new Date(a.date || a.createdAt).getTime();
         const timeB = new Date(b.date || b.createdAt).getTime();
@@ -67,11 +123,11 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
   const { totalIncome, totalExpense } = useMemo(() => {
     let income = 0;
     let expense = 0;
-    for (const t of kantongTransaksis) {
-      if (t.type === 'INCOME') {
-        income += t.amount;
+    for (const item of kantongTransaksis) {
+      if (item.type === 'INCOME') {
+        income += item.amount;
       } else {
-        expense += t.amount;
+        expense += item.amount;
       }
     }
     return { totalIncome: income, totalExpense: expense };
@@ -151,14 +207,19 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
           backgroundColor={colors.background}
           style={themeMode === 'light' ? 'dark' : 'light'}
         />
-        <View style={styles.header}>
-          <Pressable onPress={onBack} style={styles.backButton}>
-            <ThemedText variant="caption" weight="bold">
-              {t('kantongBack')}
-            </ThemedText>
+        <View style={styles.appBar}>
+          <Pressable onPress={onBack} style={styles.backButton} hitSlop={8}>
+            <ArrowLeft size={20} color={colors.text} />
           </Pressable>
+          <ThemedText weight="bold" style={styles.appBarTitle}>
+            {t('kantongNotFound')}
+          </ThemedText>
+          <View style={styles.appBarPlaceholder} />
         </View>
         <View style={styles.notFoundContainer}>
+          <View style={styles.notFoundIconBox}>
+            <Inbox size={32} color={colors.textSecondary} />
+          </View>
           <ThemedText weight="bold" style={styles.notFoundTitle}>
             {t('kantongNotFound')}
           </ThemedText>
@@ -183,17 +244,18 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
       <View style={styles.overviewCard}>
         <View style={styles.overviewTopRow}>
           <View style={styles.nameTag}>
-            <ThemedText variant="caption" style={styles.nameTagText}>
+            <Wallet size={13} color={colors.accent} />
+            <ThemedText variant="caption" weight="semibold" style={styles.nameTagText}>
               {t('kantongEnvelope')}
             </ThemedText>
           </View>
           <ThemedText variant="caption" style={styles.idText}>
-            {`ID: ${kantong.id.slice(0, 8)}`}
+            {`#${kantong.id.slice(0, 8)}`}
           </ThemedText>
         </View>
 
         <ThemedText weight="bold" style={styles.kantongName}>
-          {kantong.name.toUpperCase()}
+          {kantong.name}
         </ThemedText>
 
         <View style={styles.balanceSection}>
@@ -209,48 +271,66 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
 
         <View style={styles.analyticsRow}>
           <View style={styles.analyticCol}>
-            <ThemedText variant="caption" style={styles.analyticLabel}>
-              [ + ] TOTAL IN
-            </ThemedText>
-            <ThemedText variant="caption" weight="bold" style={styles.analyticValue}>
+            <View style={styles.analyticLabelRow}>
+              <ArrowDownLeft size={13} color={colors.success} />
+              <ThemedText variant="caption" style={styles.analyticLabel}>
+                {t('kantongTotalIn')}
+              </ThemedText>
+            </View>
+            <ThemedText
+              variant="caption"
+              weight="bold"
+              style={[styles.analyticValue, { color: colors.success }]}
+            >
               {formatCurrency(totalIncome)}
             </ThemedText>
           </View>
 
           <View style={styles.analyticCol}>
-            <ThemedText variant="caption" style={styles.analyticLabel}>
-              [ - ] TOTAL OUT
-            </ThemedText>
-            <ThemedText variant="caption" weight="bold" style={styles.analyticValue}>
+            <View style={styles.analyticLabelRow}>
+              <ArrowUpRight size={13} color={colors.danger} />
+              <ThemedText variant="caption" style={styles.analyticLabel}>
+                {t('kantongTotalOut')}
+              </ThemedText>
+            </View>
+            <ThemedText
+              variant="caption"
+              weight="bold"
+              style={[styles.analyticValue, { color: colors.danger }]}
+            >
               {formatCurrency(totalExpense)}
             </ThemedText>
           </View>
         </View>
 
-        <View style={styles.metaRow}>
-          <ThemedText variant="caption" style={styles.metaText}>
-            {`CREATED: ${formatDate(kantong.createdAt)}`}
-          </ThemedText>
-          <ThemedText variant="caption" style={styles.metaText}>
-            {`UPDATED: ${formatDate(kantong.updatedAt)}`}
-          </ThemedText>
-        </View>
-
         <View style={styles.cardActionsRow}>
           <ThemedButton
-            title={`[ ${t('kantongEditTitle').replace('// ', '')} ]`}
-            variant="outline"
-            size="sm"
+            variant="secondary"
+            size="lg"
             style={styles.cardActionBtn}
             onPress={openEditModal}
-          />
+          >
+            <View style={styles.btnContentRow}>
+              <Edit2 size={15} color={colors.text} />
+              <ThemedText weight="semibold" style={styles.btnActionText}>
+                {t('kantongEditTitle')}
+              </ThemedText>
+            </View>
+          </ThemedButton>
+
           <ThemedButton
-            title={`[ ${t('kantongDeleteTitle')} ]`}
-            variant="outline"
-            size="sm"
-            style={styles.cardActionBtn}
+            variant="danger"
+            size="lg"
+            style={[styles.cardActionBtn, styles.deleteActionBtn]}
             onPress={() => setIsDeleteModalVisible(true)}
-          />
+          >
+            <View style={styles.btnContentRow}>
+              <Trash2 size={15} color={colors.danger} />
+              <ThemedText weight="semibold" style={styles.btnDeleteText}>
+                {t('kantongDeleteTitle')}
+              </ThemedText>
+            </View>
+          </ThemedButton>
         </View>
       </View>
 
@@ -259,51 +339,74 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
         <ThemedText weight="bold" style={styles.sectionTitle}>
           {t('kantongTransactions')}
         </ThemedText>
-        <ThemedText variant="caption" style={styles.sectionCount}>
-          {`LOGGED: ${kantongTransaksis.length}`}
-        </ThemedText>
+        <View style={styles.countBadge}>
+          <ThemedText variant="caption" weight="bold" style={styles.countBadgeText}>
+            {kantongTransaksis.length}
+          </ThemedText>
+        </View>
       </View>
     </View>
   );
 
   const renderTransactionItem = ({ item, index }: { item: Transaksi; index: number }) => {
     const isIncome = item.type === 'INCOME';
+    const amountColor = isIncome ? colors.success : colors.danger;
+    const iconColor = isIncome ? colors.success : colors.accent;
 
     return (
       <Animated.View
         entering={FadeInDown.delay(index * 40).duration(250).springify().damping(16)}
         style={styles.txCard}
       >
-        <View style={styles.txHeaderRow}>
-          <View style={styles.categoryBadge}>
-            <ThemedText variant="caption" weight="bold" style={styles.categoryBadgeText}>
-              {`[ ${item.category || 'GENERAL'} ]`}
-            </ThemedText>
+        <View style={styles.txLeftCol}>
+          <View
+            style={[
+              styles.txIconContainer,
+              {
+                backgroundColor: isIncome
+                  ? 'rgba(16, 185, 129, 0.12)'
+                  : 'rgba(99, 102, 241, 0.12)',
+              },
+            ]}
+          >
+            {getTransactionCategoryIcon(item.category, item.type, 16, iconColor)}
           </View>
-          <ThemedText variant="caption" style={styles.txDate}>
-            {formatDate(item.date || item.createdAt)}
-          </ThemedText>
+          <View style={styles.txMetaCol}>
+            <ThemedText weight="semibold" style={styles.txDescription} numberOfLines={1}>
+              {item.description || item.category || 'Transaksi'}
+            </ThemedText>
+            <View style={styles.txSubRow}>
+              {Boolean(item.category) && (
+                <View style={styles.categoryBadge}>
+                  <ThemedText variant="caption" style={styles.categoryBadgeText}>
+                    {item.category}
+                  </ThemedText>
+                </View>
+              )}
+              <ThemedText variant="caption" style={styles.txDate}>
+                {formatDate(item.date || item.createdAt)}
+              </ThemedText>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.txBodyRow}>
-          <ThemedText weight="medium" style={styles.txDescription} numberOfLines={2}>
-            {item.description || 'NO DESCRIPTION'}
-          </ThemedText>
-          <ThemedText
-            weight="bold"
-            style={[styles.txAmount, isIncome ? styles.txAmountIncome : styles.txAmountExpense]}
-          >
-            {`${isIncome ? '+ ' : '- '}${formatCurrency(item.amount)}`}
-          </ThemedText>
-        </View>
+        <ThemedText
+          weight="bold"
+          style={[styles.txAmount, { color: amountColor }]}
+        >
+          {`${isIncome ? '+ ' : '- '}${formatCurrency(item.amount)}`}
+        </ThemedText>
       </Animated.View>
     );
   };
 
   const renderEmptyComponent = () => (
     <View style={styles.emptyContainer}>
-      <ThemedText variant="caption" style={styles.emptyTitle}>
-        {t('kantongNoTransactions').toUpperCase()}
+      <View style={styles.emptyIconBox}>
+        <Inbox size={28} color={colors.textSecondary} />
+      </View>
+      <ThemedText weight="bold" style={styles.emptyTitle}>
+        {t('kantongNoTransactions')}
       </ThemedText>
       <ThemedText variant="caption" style={styles.emptySubtitle}>
         {t('kantongNoTransactionsDesc')}
@@ -320,14 +423,13 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
 
       {/* Top App Bar */}
       <View style={styles.appBar}>
-        <Pressable onPress={onBack} style={styles.backButton}>
-          <ThemedText variant="caption" weight="bold" style={styles.backText}>
-            {t('kantongBack')}
-          </ThemedText>
+        <Pressable onPress={onBack} style={styles.backButton} hitSlop={8}>
+          <ArrowLeft size={20} color={colors.text} />
         </Pressable>
-        <ThemedText variant="caption" style={styles.appBarTitle}>
-          KANTONG // DETAILS
+        <ThemedText weight="bold" style={styles.appBarTitle} numberOfLines={1}>
+          {kantong.name}
         </ThemedText>
+        <View style={styles.appBarPlaceholder} />
       </View>
 
       <FlatList
@@ -356,8 +458,12 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
                 <ThemedText weight="bold" style={styles.modalTitle}>
                   {t('kantongEditTitle')}
                 </ThemedText>
-                <Pressable onPress={() => setIsEditModalVisible(false)} style={styles.modalCloseBtn}>
-                  <ThemedText variant="caption">{t('kantongEsc')}</ThemedText>
+                <Pressable
+                  onPress={() => setIsEditModalVisible(false)}
+                  style={styles.modalCloseBtn}
+                  hitSlop={8}
+                >
+                  <X size={18} color={colors.textSecondary} />
                 </Pressable>
               </View>
 
@@ -398,14 +504,14 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
                   <ThemedButton
                     title={t('billsCancel')}
                     variant="outline"
-                    size="md"
+                    size="lg"
                     style={styles.modalActionBtn}
                     onPress={() => setIsEditModalVisible(false)}
                   />
                   <ThemedButton
                     title={t('kantongUpdateBtn')}
                     variant="primary"
-                    size="md"
+                    size="lg"
                     loading={isUpdating}
                     style={styles.modalActionBtn}
                     onPress={handleUpdate}
@@ -428,13 +534,14 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <ThemedText weight="bold" style={styles.deleteModalTitle}>
-                {`! ${t('kantongDeleteTitle')}`}
+                {t('kantongDeleteTitle')}
               </ThemedText>
               <Pressable
                 onPress={() => setIsDeleteModalVisible(false)}
                 style={styles.modalCloseBtn}
+                hitSlop={8}
               >
-                <ThemedText variant="caption">{t('kantongEsc')}</ThemedText>
+                <X size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
 
@@ -459,15 +566,15 @@ export default function KantongDetail({ kantongId, onBack }: KantongDetailProps)
                 <ThemedButton
                   title={t('billsCancel')}
                   variant="outline"
-                  size="md"
+                  size="lg"
                   disabled={isDeleting}
                   style={styles.modalActionBtn}
                   onPress={() => setIsDeleteModalVisible(false)}
                 />
                 <ThemedButton
                   title={t('kantongDeleteBtn')}
-                  variant="primary"
-                  size="md"
+                  variant="danger"
+                  size="lg"
                   loading={isDeleting}
                   style={styles.modalActionBtn}
                   onPress={handleDelete}
@@ -494,24 +601,28 @@ const getStyles = (colors: ColorTheme) =>
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.cardBorder,
       backgroundColor: colors.background,
     },
+    appBarPlaceholder: {
+      width: 36,
+    },
     appBarTitle: {
-      color: colors.textSecondary,
-      letterSpacing: 1,
+      color: colors.text,
+      fontSize: Typography.scale.base.fontSize,
+      letterSpacing: 0.3,
     },
     backButton: {
-      paddingVertical: Spacing.half,
-      paddingHorizontal: Spacing.one,
-    },
-    backText: {
-      color: colors.text,
-      letterSpacing: 1,
+      width: 36,
+      height: 36,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     listContent: {
       padding: Spacing.three,
-      paddingBottom: Spacing.six,
+      paddingBottom: Spacing.six * 2,
     },
     headerContent: {
       marginBottom: Spacing.three,
@@ -520,8 +631,8 @@ const getStyles = (colors: ColorTheme) =>
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.cardBorder,
-      borderRadius: BorderRadius.lg,
-      padding: Spacing.three,
+      borderRadius: BorderRadius.xl,
+      padding: Spacing.four,
       marginBottom: Spacing.three,
     },
     overviewTopRow: {
@@ -531,26 +642,30 @@ const getStyles = (colors: ColorTheme) =>
       marginBottom: Spacing.two,
     },
     nameTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: BorderRadius.sm,
-      paddingHorizontal: Spacing.one * 1.5,
+      borderRadius: BorderRadius.full,
+      paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.half,
-      backgroundColor: colors.backgroundElement,
+      backgroundColor: colors.backgroundSelected,
     },
     nameTagText: {
       color: colors.textSecondary,
       fontSize: Typography.scale.xs.fontSize,
+      letterSpacing: 0.3,
     },
     idText: {
       color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
     },
     kantongName: {
-      fontSize: Typography.scale['2xl'].fontSize,
-      lineHeight: Typography.scale['2xl'].lineHeight,
+      fontSize: Typography.scale.xl.fontSize,
       color: colors.text,
       marginBottom: Spacing.two,
-      letterSpacing: 0.5,
+      letterSpacing: 0.3,
     },
     balanceSection: {
       marginBottom: Spacing.two,
@@ -558,7 +673,7 @@ const getStyles = (colors: ColorTheme) =>
     balanceLabel: {
       color: colors.textSecondary,
       fontSize: Typography.scale.xs.fontSize,
-      letterSpacing: 1,
+      letterSpacing: 0.5,
       marginBottom: Spacing.half,
     },
     balanceAmount: {
@@ -568,42 +683,34 @@ const getStyles = (colors: ColorTheme) =>
     },
     divider: {
       height: 1,
-      backgroundColor: colors.border,
+      backgroundColor: colors.cardBorder,
       marginVertical: Spacing.two,
     },
     analyticsRow: {
       flexDirection: 'row',
-      gap: Spacing.three,
-      marginBottom: Spacing.two,
+      gap: Spacing.two,
+      marginBottom: Spacing.three,
     },
     analyticCol: {
       flex: 1,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.cardBorder,
       borderRadius: BorderRadius.md,
-      backgroundColor: colors.backgroundElement,
-      padding: Spacing.two,
+      backgroundColor: colors.backgroundSelected,
+      padding: Spacing.two * 1.25,
+      gap: 4,
+    },
+    analyticLabelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
     },
     analyticLabel: {
       color: colors.textSecondary,
       fontSize: Typography.scale.xs.fontSize,
-      marginBottom: Spacing.half,
     },
     analyticValue: {
-      color: colors.text,
       fontSize: Typography.scale.sm.fontSize,
-    },
-    metaRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: Spacing.one,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      marginBottom: Spacing.two * 1.5,
-    },
-    metaText: {
-      color: colors.textSecondary,
-      fontSize: Typography.scale.xs.fontSize,
     },
     cardActionsRow: {
       flexDirection: 'row',
@@ -611,6 +718,26 @@ const getStyles = (colors: ColorTheme) =>
     },
     cardActionBtn: {
       flex: 1,
+      height: 52,
+      borderRadius: BorderRadius.lg,
+    },
+    deleteActionBtn: {
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+    },
+    btnContentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    btnActionText: {
+      color: colors.text,
+      fontSize: Typography.scale.sm.fontSize,
+    },
+    btnDeleteText: {
+      color: colors.danger,
+      fontSize: Typography.scale.sm.fontSize,
     },
     sectionHeader: {
       flexDirection: 'row',
@@ -618,16 +745,25 @@ const getStyles = (colors: ColorTheme) =>
       alignItems: 'center',
       paddingBottom: Spacing.one,
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.cardBorder,
       marginBottom: Spacing.two,
     },
     sectionTitle: {
       color: colors.text,
       fontSize: Typography.scale.sm.fontSize,
-      letterSpacing: 1,
+      letterSpacing: 0.5,
     },
-    sectionCount: {
+    countBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    countBadgeText: {
       color: colors.textSecondary,
+      fontSize: 11,
     },
     txCard: {
       backgroundColor: colors.card,
@@ -636,72 +772,96 @@ const getStyles = (colors: ColorTheme) =>
       borderRadius: BorderRadius.md,
       padding: Spacing.two * 1.5,
       marginBottom: Spacing.two,
-    },
-    txHeaderRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: Spacing.one,
     },
-    categoryBadge: {
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: BorderRadius.sm,
-      paddingHorizontal: Spacing.one * 1.5,
-      paddingVertical: Spacing.half,
-      backgroundColor: colors.backgroundElement,
-    },
-    categoryBadgeText: {
-      color: colors.textSecondary,
-      fontSize: Typography.scale.xs.fontSize,
-    },
-    txDate: {
-      color: colors.textSecondary,
-      fontSize: Typography.scale.xs.fontSize,
-    },
-    txBodyRow: {
+    txLeftCol: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
       gap: Spacing.two,
+      flex: 1,
+      marginRight: Spacing.two,
+    },
+    txIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: BorderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    txMetaCol: {
+      flex: 1,
+      gap: 3,
     },
     txDescription: {
-      flex: 1,
       color: colors.text,
       fontSize: Typography.scale.sm.fontSize,
     },
+    txSubRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    categoryBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: BorderRadius.sm,
+      backgroundColor: colors.backgroundSelected,
+    },
+    categoryBadgeText: {
+      color: colors.textSecondary,
+      fontSize: 10,
+    },
+    txDate: {
+      color: colors.textSecondary,
+      fontSize: 11,
+    },
     txAmount: {
-      fontSize: Typography.scale.base.fontSize,
-    },
-    txAmountIncome: {
-      color: colors.success,
-    },
-    txAmountExpense: {
-      color: colors.danger,
+      fontSize: Typography.scale.sm.fontSize,
     },
     emptyContainer: {
       padding: Spacing.four,
       borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: BorderRadius.md,
+      borderColor: colors.cardBorder,
+      borderRadius: BorderRadius.lg,
       backgroundColor: colors.card,
       alignItems: 'center',
       marginTop: Spacing.two,
+      gap: Spacing.one,
+    },
+    emptyIconBox: {
+      width: 48,
+      height: 48,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.one,
     },
     emptyTitle: {
       color: colors.text,
-      letterSpacing: 1,
-      marginBottom: Spacing.one,
+      fontSize: Typography.scale.sm.fontSize,
     },
     emptySubtitle: {
       color: colors.textSecondary,
       textAlign: 'center',
+      fontSize: Typography.scale.xs.fontSize,
     },
     notFoundContainer: {
       flex: 1,
       padding: Spacing.four,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    notFoundIconBox: {
+      width: 56,
+      height: 56,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.two,
     },
     notFoundTitle: {
       color: colors.text,
@@ -715,9 +875,6 @@ const getStyles = (colors: ColorTheme) =>
     },
     returnButton: {
       minWidth: 200,
-    },
-    header: {
-      padding: Spacing.three,
     },
     modalOverlay: {
       flex: 1,
@@ -743,22 +900,27 @@ const getStyles = (colors: ColorTheme) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.cardBorder,
       paddingBottom: Spacing.two,
       marginBottom: Spacing.two,
     },
     modalTitle: {
       color: colors.text,
       fontSize: Typography.scale.md.fontSize,
-      letterSpacing: 1,
+      letterSpacing: 0.5,
     },
     deleteModalTitle: {
       color: colors.danger,
       fontSize: Typography.scale.md.fontSize,
-      letterSpacing: 1,
+      letterSpacing: 0.5,
     },
     modalCloseBtn: {
-      padding: Spacing.half,
+      width: 30,
+      height: 30,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.backgroundSelected,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     modalBody: {
       gap: Spacing.two,
@@ -766,16 +928,15 @@ const getStyles = (colors: ColorTheme) =>
     modalFieldLabel: {
       color: colors.textSecondary,
       fontSize: Typography.scale.xs.fontSize,
-      letterSpacing: 1,
       marginTop: Spacing.one,
     },
     modalInput: {
       fontFamily: MonospaceFamily,
       fontSize: Typography.scale.base.fontSize,
       color: colors.text,
-      backgroundColor: colors.backgroundElement,
+      backgroundColor: colors.backgroundSelected,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.cardBorder,
       borderRadius: BorderRadius.md,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two * 1.25,
@@ -789,9 +950,9 @@ const getStyles = (colors: ColorTheme) =>
       flex: 1,
     },
     errorBox: {
-      backgroundColor: colors.backgroundElement,
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
       borderWidth: 1,
-      borderColor: colors.danger,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
       borderRadius: BorderRadius.md,
       padding: Spacing.two,
     },
@@ -803,14 +964,12 @@ const getStyles = (colors: ColorTheme) =>
       color: colors.text,
       fontSize: Typography.scale.base.fontSize,
       lineHeight: Typography.scale.base.lineHeight,
-      letterSpacing: 0.5,
       marginVertical: Spacing.one,
     },
     warningSubMessage: {
       color: colors.textSecondary,
       fontSize: Typography.scale.xs.fontSize,
       lineHeight: Typography.scale.sm.lineHeight,
-      letterSpacing: 0.5,
       marginBottom: Spacing.two,
     },
   });

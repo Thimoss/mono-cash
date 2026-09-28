@@ -13,6 +13,7 @@ import {
   Transaksi,
   UpdateKantongInput,
   Wishlist,
+  WishlistProgressLog,
 } from '@/types';
 import { exportAndShareFullData } from '@/utils/exportUtils';
 import {
@@ -20,6 +21,7 @@ import {
   createTagihan,
   createTransaksi,
   createWishlist,
+  createWishlistProgressLog,
   deleteKantong as deleteKantongDb,
   deleteWishlist as deleteWishlistDb,
   getAllKantong,
@@ -27,6 +29,7 @@ import {
   getAllTransaksi,
   getAllWishlist,
   getWishlistById,
+  getWishlistProgressLogs,
   initDatabase,
   resetDatabase,
   updateKantong,
@@ -35,7 +38,10 @@ import {
 } from '@/db/init';
 
 function generateUniqueId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; // NOSONAR
 }
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
@@ -43,6 +49,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   transaksis: [],
   tagihans: [],
   wishlists: [],
+  wishlistLogs: {},
   themeMode: 'dark',
   language: 'id',
   isLoading: false,
@@ -65,6 +72,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         transaksis: [],
         tagihans: [],
         wishlists: [],
+        wishlistLogs: {},
         isLoading: false,
       });
     } catch (err) {
@@ -263,8 +271,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         throw new Error(`Tagihan "${targetTagihan.title}" is already paid`);
       }
 
-      const targetKantong = kantongs.find((k) => k.id === kantongId);
-      if (!targetKantong) {
+      const kantongExists = kantongs.some((k) => k.id === kantongId);
+      if (!kantongExists) {
         throw new Error(`Kantong with id "${kantongId}" not found`);
       }
 
@@ -308,6 +316,9 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     try {
       const now = new Date().toISOString();
       const resolvedImage = (input.imageUri?.trim() || input.imageUrl?.trim()) ?? '';
+      const savedAmount = input.saved_amount ?? 0;
+      const isAchieved = savedAmount >= input.price;
+
       const newWishlist: Wishlist = {
         id: input.id ?? generateUniqueId(),
         title: input.title.trim(),
@@ -316,7 +327,9 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         imageUrl: resolvedImage,
         imageUri: resolvedImage || undefined,
         purchaseLink: input.purchaseLink?.trim() || null,
-        isAchieved: false,
+        funding_source: input.funding_source?.trim() || null,
+        saved_amount: savedAmount,
+        isAchieved,
         createdAt: now,
       };
 
@@ -330,6 +343,75 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       return newWishlist;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add wishlist';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
+
+  fetchWishlistLogs: async (wishlistId: string): Promise<WishlistProgressLog[]> => {
+    try {
+      const logs = await getWishlistProgressLogs(wishlistId);
+      set((state) => ({
+        wishlistLogs: {
+          ...state.wishlistLogs,
+          [wishlistId]: logs,
+        },
+      }));
+      return logs;
+    } catch (err) {
+      console.error('Failed to fetch wishlist logs:', err);
+      return [];
+    }
+  },
+
+  addWishlistProgress: async (id: string, amount: number): Promise<void> => {
+    set({ isLoading: true, error: null });
+    try {
+      if (amount <= 0) {
+        throw new Error('Progress amount must be greater than 0');
+      }
+
+      const { wishlists } = get();
+      const existing = wishlists.find((w) => w.id === id) ?? (await getWishlistById(id));
+      if (!existing) {
+        throw new Error(`Wishlist with id "${id}" not found`);
+      }
+
+      const currentSaved = existing.saved_amount ?? 0;
+      const newSavedAmount = currentSaved + amount;
+      const isNowAchieved = newSavedAmount >= existing.price ? true : existing.isAchieved;
+
+      const log: WishlistProgressLog = {
+        id: generateUniqueId(),
+        wishlist_id: id,
+        amount_added: amount,
+        created_at: new Date().toISOString(),
+      };
+
+      await createWishlistProgressLog(log);
+      const updatedWishlist = await updateWishlist(id, {
+        saved_amount: newSavedAmount,
+        isAchieved: isNowAchieved,
+      });
+
+      if (!updatedWishlist) {
+        throw new Error(`Failed to update progress for wishlist "${id}"`);
+      }
+
+      set((state) => {
+        const existingLogs = state.wishlistLogs[id] ?? [];
+        return {
+          wishlists: state.wishlists.map((w) => (w.id === id ? updatedWishlist : w)),
+          wishlistLogs: {
+            ...state.wishlistLogs,
+            [id]: [log, ...existingLogs],
+          },
+          isLoading: false,
+        };
+      });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to add wishlist progress';
       set({ error: errorMessage, isLoading: false });
       throw err;
     }
@@ -376,10 +458,15 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     try {
       const success = await deleteWishlistDb(id);
       if (success) {
-        set((state) => ({
-          wishlists: state.wishlists.filter((w) => w.id !== id),
-          isLoading: false,
-        }));
+        set((state) => {
+          const newWishlistLogs = { ...state.wishlistLogs };
+          delete newWishlistLogs[id];
+          return {
+            wishlists: state.wishlists.filter((w) => w.id !== id),
+            wishlistLogs: newWishlistLogs,
+            isLoading: false,
+          };
+        });
       } else {
         set({ isLoading: false });
       }

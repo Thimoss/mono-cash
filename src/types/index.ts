@@ -44,8 +44,17 @@ export interface Wishlist {
   imageUrl: string;
   imageUri?: string;
   purchaseLink: string | null;
+  funding_source?: string | null;
+  saved_amount: number;
   isAchieved: boolean;
   createdAt: string;
+}
+
+export interface WishlistProgressLog {
+  id: string;
+  wishlist_id: string;
+  amount_added: number;
+  created_at: string;
 }
 
 export type CreateKantongInput = Omit<Kantong, 'id' | 'createdAt' | 'updatedAt'>;
@@ -92,6 +101,8 @@ export interface AddWishlistInput {
   imageUrl?: string;
   imageUri?: string;
   purchaseLink?: string | null;
+  funding_source?: string | null;
+  saved_amount?: number;
   id?: string;
 }
 
@@ -109,6 +120,7 @@ export interface FinanceState {
   transaksis: Transaksi[];
   tagihans: Tagihan[];
   wishlists: Wishlist[];
+  wishlistLogs: Record<string, WishlistProgressLog[]>;
   themeMode: ThemeMode;
   language: Language;
   isLoading: boolean;
@@ -129,6 +141,8 @@ export interface FinanceState {
   addWishlist: (input: AddWishlistInput) => Promise<Wishlist>;
   toggleAchievedWishlist: (id: string) => Promise<Wishlist>;
   deleteWishlist: (id: string) => Promise<boolean>;
+  fetchWishlistLogs: (wishlistId: string) => Promise<WishlistProgressLog[]>;
+  addWishlistProgress: (id: string, amount: number) => Promise<void>;
   exportFinanceData: () => Promise<ExportResult>;
 }
 
@@ -173,6 +187,7 @@ export interface ThemedButtonProps {
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  primaryAction?: boolean;
 }
 
 export interface KantongCardProps {
@@ -205,7 +220,13 @@ export interface WishlistCardProps {
   onPress?: (wishlist: Wishlist) => void;
 }
 
-export type ActiveScreen = 'DASHBOARD' | 'BILLS' | 'WISHLIST' | 'KANTONG_DETAIL' | 'SETTINGS';
+export type ActiveScreen =
+  | 'DASHBOARD'
+  | 'BILLS'
+  | 'WISHLIST'
+  | 'KANTONG_DETAIL'
+  | 'SETTINGS'
+  | 'WISHLIST_DETAIL';
 
 export interface DashboardProps {
   onNavigateBills?: () => void;
@@ -220,6 +241,12 @@ export interface BillsScreenProps {
 
 export interface WishlistScreenProps {
   onBack?: () => void;
+  onSelectWishlist?: (wishlist: Wishlist) => void;
+}
+
+export interface WishlistDetailProps {
+  wishlistId: string;
+  onBack: () => void;
 }
 
 export interface KantongDetailProps {

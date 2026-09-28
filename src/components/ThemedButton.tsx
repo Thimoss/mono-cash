@@ -18,6 +18,16 @@ const SPRING_CONFIG = {
   mass: 0.8,
 };
 
+export const PRIMARY_ACTION_BUTTON_STYLE = {
+  height: 52,
+  minHeight: 52,
+  borderRadius: BorderRadius.lg,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+  flexDirection: 'row' as const,
+  gap: 8,
+};
+
 export function ThemedButton({
   title,
   children,
@@ -28,7 +38,8 @@ export function ThemedButton({
   loading = false,
   style,
   textStyle,
-}: ThemedButtonProps) {
+  primaryAction = false,
+}: Readonly<ThemedButtonProps>) {
   const colors = useTheme();
   const scale = useSharedValue(1);
 
@@ -81,6 +92,24 @@ export function ThemedButton({
   };
 
   const contentColor = getContentColor();
+  const isPrimaryAction = primaryAction || size === 'lg';
+
+  const renderContent = () => {
+    if (loading) {
+      return <ActivityIndicator size="small" color={contentColor} />;
+    }
+    if (children) {
+      return children;
+    }
+    return (
+      <ThemedText
+        weight="semibold"
+        style={[styles.textBase, { color: contentColor }, textSizeStyles[size], textStyle]}
+      >
+        {title}
+      </ThemedText>
+    );
+  };
 
   return (
     <AnimatedPressable
@@ -92,23 +121,13 @@ export function ThemedButton({
         styles.base,
         sizeStyles[size],
         getDynamicVariantStyle(),
+        isPrimaryAction && styles.primaryActionBase,
         disabled && styles.disabled,
         animatedStyle,
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={contentColor} />
-      ) : children ? (
-        children
-      ) : (
-        <ThemedText
-          weight="semibold"
-          style={[styles.textBase, { color: contentColor }, textSizeStyles[size], textStyle]}
-        >
-          {title}
-        </ThemedText>
-      )}
+      {renderContent()}
     </AnimatedPressable>
   );
 }
@@ -118,8 +137,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     borderWidth: 1,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
+  },
+  primaryActionBase: {
+    height: 52,
+    minHeight: 52,
+    borderRadius: BorderRadius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   textBase: {
     textAlign: 'center',
@@ -138,16 +167,20 @@ const sizeStyles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   md: {
-    paddingVertical: Spacing.two * 1.25,
+    paddingVertical: 12,
     paddingHorizontal: Spacing.three,
-    minHeight: 44,
+    minHeight: 48,
     borderRadius: BorderRadius.md,
   },
   lg: {
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.four,
+    height: 52,
     minHeight: 52,
+    paddingHorizontal: Spacing.four,
     borderRadius: BorderRadius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
 });
 
