@@ -13,10 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import {
   AlertCircle,
+  AlertTriangle,
   Calendar,
   CalendarPlus,
   CheckCircle2,
   Clock,
+  CreditCard,
+  Folder,
+  PiggyBank,
   Receipt,
   RotateCcw,
   Wallet,
@@ -67,6 +71,20 @@ function formatDueDate(isoString: string): string {
   } catch {
     return isoString;
   }
+}
+
+function getKantongIcon(name: string) {
+  const upper = name.toUpperCase();
+  if (upper.includes('TABUNG') || upper.includes('SAVE') || upper.includes('INVEST')) {
+    return PiggyBank;
+  }
+  if (upper.includes('KREDIT') || upper.includes('CARD') || upper.includes('HUTANG') || upper.includes('DEBT')) {
+    return CreditCard;
+  }
+  if (upper.includes('DOMPET') || upper.includes('CASH') || upper.includes('OPERASIONAL') || upper.includes('MAIN')) {
+    return Wallet;
+  }
+  return Folder;
 }
 
 function getCardStyle(
@@ -303,7 +321,7 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
   const themeMode = useFinanceStore((state) => state.themeMode);
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
-  const { tagihans, kantongs, isLoading, loadTagihans, loadInitialData, payTagihan } =
+  const { tagihans, kantongs, isLoading, loadTagihans, loadInitialData, payBill } =
     useFinanceStore();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -389,9 +407,20 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
     try {
       setIsPaying(true);
       setPayError(null);
-      await payTagihan(selectedTagihan.id, selectedKantongId);
+      await payBill(
+        selectedTagihan.id,
+        selectedKantongId,
+        selectedTagihan.amount,
+        selectedTagihan.title,
+      );
       setIsPaying(false);
       setSelectedTagihan(null);
+      setAlertConfig({
+        visible: true,
+        title: t('appName'),
+        message: t('billPaidSuccess'),
+        type: 'success',
+      });
     } catch (err) {
       setIsPaying(false);
       const msg = err instanceof Error ? err.message : 'PAYMENT FAILED';
@@ -567,7 +596,7 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
               <View style={styles.modalHeaderTitleRow}>
                 <Receipt size={18} color={colors.accent} />
                 <ThemedText weight="bold" style={styles.modalTitle}>
-                  {t('billsConfirmPayment')}
+                  {t('billsSelectSourceTitle')}
                 </ThemedText>
               </View>
               <Pressable
@@ -608,40 +637,95 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
                   </View>
                 ) : (
                   <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.kantongSelectRow}
+                    style={styles.kantongScroll}
+                    showsVerticalScrollIndicator={false}
                   >
-                    {kantongs.map((k) => {
-                      const isSelected = k.id === selectedKantongId;
-                      return (
-                        <Pressable
-                          key={k.id}
-                          onPress={() => setSelectedKantongId(k.id)}
-                          style={[
-                            styles.kantongOption,
-                            isSelected && styles.kantongOptionSelected,
-                          ]}
-                        >
-                          <Wallet
-                            size={14}
-                            color={isSelected ? Palette.pureWhite : colors.textSecondary}
-                          />
-                          <ThemedText
-                            variant="caption"
-                            weight={isSelected ? 'bold' : 'regular'}
+                    <View style={styles.kantongListContainer}>
+                      {kantongs.map((k) => {
+                        const isSelected = k.id === selectedKantongId;
+                        const isInsufficient = k.balance < selectedTagihan.amount;
+                        const KantongIcon = getKantongIcon(k.name);
+                        return (
+                          <Pressable
+                            key={k.id}
+                            onPress={() => setSelectedKantongId(k.id)}
                             style={[
-                              styles.kantongOptionText,
-                              isSelected && styles.kantongOptionTextSelected,
+                              styles.kantongCard,
+                              isSelected && styles.kantongCardSelected,
                             ]}
                           >
-                            {`${k.name} (${formatCurrency(k.balance)})`}
-                          </ThemedText>
-                        </Pressable>
-                      );
-                    })}
+                            <View style={styles.kantongCardLeft}>
+                              <View
+                                style={[
+                                  styles.kantongIconBox,
+                                  isSelected && styles.kantongIconBoxSelected,
+                                ]}
+                              >
+                                <KantongIcon
+                                  size={16}
+                                  color={isSelected ? Palette.pureWhite : colors.accent}
+                                />
+                              </View>
+                              <View style={styles.kantongInfo}>
+                                <ThemedText
+                                  weight={isSelected ? 'bold' : 'medium'}
+                                  style={[
+                                    styles.kantongNameText,
+                                    isSelected && styles.kantongNameTextSelected,
+                                  ]}
+                                >
+                                  {k.name}
+                                </ThemedText>
+                                <ThemedText
+                                  variant="caption"
+                                  style={[
+                                    styles.kantongBalanceText,
+                                    isSelected && styles.kantongBalanceTextSelected,
+                                  ]}
+                                >
+                                  {formatCurrency(k.balance)}
+                                </ThemedText>
+                              </View>
+                            </View>
+
+                            <View style={styles.kantongCardRight}>
+                              {isInsufficient && (
+                                <View style={styles.insufficientBadge}>
+                                  <ThemedText variant="caption" style={styles.insufficientBadgeText}>
+                                    Saldo Kurang
+                                  </ThemedText>
+                                </View>
+                              )}
+                              <View
+                                style={[
+                                  styles.radioCircle,
+                                  isSelected && styles.radioCircleSelected,
+                                ]}
+                              >
+                                {isSelected && <View style={styles.radioInner} />}
+                              </View>
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </ScrollView>
                 )}
+
+                {(() => {
+                  const selectedK = kantongs.find((k) => k.id === selectedKantongId);
+                  if (selectedK && selectedK.balance < selectedTagihan.amount) {
+                    return (
+                      <View style={styles.insufficientWarningBox}>
+                        <AlertTriangle size={14} color={colors.warning} />
+                        <ThemedText variant="caption" style={styles.insufficientWarningText}>
+                          {t('billsInsufficientBalanceWarning')}
+                        </ThemedText>
+                      </View>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {Boolean(payError) && (
                   <View style={styles.payErrorBox}>
@@ -1092,32 +1176,115 @@ const getStyles = (colors: ColorTheme) =>
     noKantongText: {
       color: colors.textMuted,
     },
-    kantongSelectRow: {
-      flexDirection: 'row',
+    kantongScroll: {
+      maxHeight: 220,
+    },
+    kantongListContainer: {
       gap: Spacing.two,
       paddingVertical: Spacing.half,
     },
-    kantongOption: {
+    kantongCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: Spacing.one * 1.5,
+      justifyContent: 'space-between',
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.backgroundSelected,
-      paddingVertical: Spacing.one * 1.5,
-      paddingHorizontal: Spacing.two * 1.5,
-      borderRadius: BorderRadius.full,
+      paddingVertical: Spacing.two * 1.25,
+      paddingHorizontal: Spacing.three,
+      borderRadius: BorderRadius.lg,
     },
-    kantongOptionSelected: {
+    kantongCardSelected: {
+      borderColor: colors.accent,
+      backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    },
+    kantongCardLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+      flex: 1,
+    },
+    kantongIconBox: {
+      width: 34,
+      height: 34,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundElement,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    kantongIconBoxSelected: {
       backgroundColor: colors.accent,
       borderColor: colors.accent,
     },
-    kantongOptionText: {
+    kantongInfo: {
+      flex: 1,
+    },
+    kantongNameText: {
+      fontSize: Typography.scale.sm.fontSize,
+      color: colors.text,
+    },
+    kantongNameTextSelected: {
+      color: colors.text,
+    },
+    kantongBalanceText: {
       color: colors.textSecondary,
+      marginTop: 2,
+    },
+    kantongBalanceTextSelected: {
+      color: colors.accent,
+    },
+    kantongCardRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    insufficientBadge: {
+      paddingHorizontal: Spacing.one * 1.5,
+      paddingVertical: 2,
+      borderRadius: BorderRadius.xs,
+      backgroundColor: 'rgba(245, 158, 11, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.3)',
+    },
+    insufficientBadgeText: {
+      color: colors.warning,
       fontSize: Typography.scale.xs.fontSize,
     },
-    kantongOptionTextSelected: {
-      color: Palette.pureWhite,
+    radioCircle: {
+      width: 20,
+      height: 20,
+      borderRadius: BorderRadius.full,
+      borderWidth: 2,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    radioCircleSelected: {
+      borderColor: colors.accent,
+    },
+    radioInner: {
+      width: 10,
+      height: 10,
+      borderRadius: BorderRadius.full,
+      backgroundColor: colors.accent,
+    },
+    insufficientWarningBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one * 1.5,
+      padding: Spacing.two,
+      borderRadius: BorderRadius.md,
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.25)',
+      marginTop: Spacing.one,
+    },
+    insufficientWarningText: {
+      color: colors.warning,
+      flex: 1,
+      fontSize: Typography.scale.xs.fontSize,
     },
     payErrorBox: {
       backgroundColor: 'rgba(239, 68, 68, 0.12)',

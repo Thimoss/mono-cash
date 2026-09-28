@@ -137,6 +137,12 @@ export interface FinanceState {
   loadTagihans: () => Promise<void>;
   addTagihan: (input: AddTagihanInput) => Promise<Tagihan>;
   payTagihan: (tagihanId: string, kantongId: string) => Promise<void>;
+  payBill: (
+    billId: string,
+    kantongId: string,
+    amount: number,
+    billTitle: string,
+  ) => Promise<void>;
   loadWishlists: () => Promise<void>;
   addWishlist: (input: AddWishlistInput) => Promise<Wishlist>;
   toggleAchievedWishlist: (id: string) => Promise<Wishlist>;

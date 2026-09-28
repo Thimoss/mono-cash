@@ -261,46 +261,53 @@ export const useFinanceStore = create<FinanceState>()(
     }
   },
 
-  payTagihan: async (tagihanId: string, kantongId: string): Promise<void> => {
+  payBill: async (
+    billId: string,
+    kantongId: string,
+    amount: number,
+    billTitle: string,
+  ): Promise<void> => {
     set({ isLoading: true, error: null });
     try {
-      const { tagihans, kantongs, addTransaksi } = get();
-      const targetTagihan = tagihans.find((t) => t.id === tagihanId);
-
-      if (!targetTagihan) {
-        throw new Error(`Tagihan with id "${tagihanId}" not found`);
-      }
-
-      if (targetTagihan.isPaid) {
-        throw new Error(`Tagihan "${targetTagihan.title}" is already paid`);
-      }
-
+      const { kantongs, addTransaksi } = get();
       const kantongExists = kantongs.some((k) => k.id === kantongId);
+
       if (!kantongExists) {
         throw new Error(`Kantong with id "${kantongId}" not found`);
       }
 
-      await updateTagihan(tagihanId, { isPaid: true });
+      // Mark the bill as paid
+      await updateTagihan(billId, { isPaid: true });
 
+      // Deduct balance and record transaction
       await addTransaksi({
         kantongId,
-        amount: targetTagihan.amount,
+        amount,
         type: 'EXPENSE',
-        description: `TAGIHAN: ${targetTagihan.title.toUpperCase()}`,
+        description: `Bayar Tagihan: ${billTitle}`,
         category: 'TAGIHAN',
       });
 
       set((state) => ({
         tagihans: state.tagihans.map((t) =>
-          t.id === tagihanId ? { ...t, isPaid: true } : t
+          t.id === billId ? { ...t, isPaid: true } : t
         ),
         isLoading: false,
       }));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to pay tagihan';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to pay bill';
       set({ error: errorMessage, isLoading: false });
       throw err;
     }
+  },
+
+  payTagihan: async (tagihanId: string, kantongId: string): Promise<void> => {
+    const { tagihans, payBill } = get();
+    const target = tagihans.find((t) => t.id === tagihanId);
+    if (!target) {
+      throw new Error(`Tagihan with id "${tagihanId}" not found`);
+    }
+    await payBill(tagihanId, kantongId, target.amount, target.title);
   },
 
   loadWishlists: async () => {
