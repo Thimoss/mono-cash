@@ -338,9 +338,9 @@ export default function WishlistDetail({ wishlistId, onBack }: Readonly<Wishlist
   const renderLogItem = ({ item, index }: { item: WishlistProgressLog; index: number }) => (
     <Animated.View
       entering={FadeInDown.delay(index * 30).duration(200)}
-      style={styles.logItemContainer}
     >
-      <View style={styles.logLeft}>
+      <View style={styles.logItemContainer}>
+        <View style={styles.logLeft}>
         <View style={styles.logIconBox}>
           <TrendingUp size={16} color={colors.success} />
         </View>
@@ -355,6 +355,7 @@ export default function WishlistDetail({ wishlistId, onBack }: Readonly<Wishlist
             </ThemedText>
           </View>
         </View>
+      </View>
       </View>
     </Animated.View>
   );

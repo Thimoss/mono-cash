@@ -352,9 +352,9 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
     return (
       <Animated.View
         entering={FadeInDown.delay(index * 40).duration(250).springify().damping(16)}
-        style={styles.txCard}
       >
-        <View style={styles.txLeftCol}>
+        <View style={styles.txCard}>
+          <View style={styles.txLeftCol}>
           <View
             style={[
               styles.txIconContainer,
@@ -392,6 +392,7 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
         >
           {`${isIncome ? '+ ' : '- '}${formatCurrency(item.amount)}`}
         </ThemedText>
+        </View>
       </Animated.View>
     );
   };

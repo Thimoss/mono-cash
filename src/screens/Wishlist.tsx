@@ -145,10 +145,10 @@ function WishlistCard({
   return (
     <Animated.View
       entering={FadeInDown.delay(index * 50).duration(300).springify().damping(15)}
-      style={[styles.cardContainer, getCardStyle()]}
     >
-      <Pressable
-        onPress={() => onPress?.(wishlist)}
+      <View style={[styles.cardContainer, getCardStyle()]}>
+        <Pressable
+          onPress={() => onPress?.(wishlist)}
         style={styles.cardPressable}
         android_ripple={{ color: 'rgba(255, 255, 255, 0.05)' }}
       >
@@ -284,6 +284,7 @@ function WishlistCard({
             <Trash2 size={16} color={colors.danger} />
           </Pressable>
         )}
+      </View>
       </View>
     </Animated.View>
   );
