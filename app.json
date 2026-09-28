@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/expo.icon/splash.png",
-      "resizeMode": "covers",
+      "resizeMode": "cover",
       "backgroundColor": "#121214"
     },
     "ios": {
