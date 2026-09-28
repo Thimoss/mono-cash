@@ -211,6 +211,7 @@ export interface TagihanCardProps {
   tagihan: Tagihan;
   index: number;
   onPayPress?: (tagihan: Tagihan) => void;
+  onAddToCalendar?: (tagihan: Tagihan) => void;
 }
 
 export interface WishlistCardProps {

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -14,6 +15,7 @@ import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import {
   AlertCircle,
   Calendar,
+  CalendarPlus,
   CheckCircle2,
   Clock,
   Receipt,
@@ -32,6 +34,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useTranslation } from '@/hooks/use-translation';
+import { addBillToCalendar } from '@/services/calendarService';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { BillsScreenProps, Tagihan, TagihanCardProps } from '@/types';
 
@@ -121,7 +124,12 @@ function getPayVariant(
   return 'outline';
 }
 
-function TagihanCard({ tagihan, index, onPayPress }: Readonly<TagihanCardProps>) {
+function TagihanCard({
+  tagihan,
+  index,
+  onPayPress,
+  onAddToCalendar,
+}: Readonly<TagihanCardProps>) {
   const colors = useTheme();
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -266,12 +274,30 @@ function TagihanCard({ tagihan, index, onPayPress }: Readonly<TagihanCardProps>)
             {`${t('billsDeadline')}: ${formatDueDate(tagihan.dueDate)}`}
           </ThemedText>
         </View>
+
+        {!tagihan.isPaid && onAddToCalendar && (
+          <Pressable
+            onPress={() => onAddToCalendar(tagihan)}
+            style={({ pressed }) => [
+              styles.calendarButton,
+              pressed && { opacity: 0.7 },
+            ]}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('billsAddToCalendar')}
+          >
+            <CalendarPlus size={13} color={colors.accent} />
+            <ThemedText variant="caption" weight="medium" style={styles.calendarButtonText}>
+              {t('billsAddToCalendar')}
+            </ThemedText>
+          </Pressable>
+        )}
       </View>
     </Animated.View>
   );
 }
 
-export default function BillsScreen({ onBack }: Readonly<BillsScreenProps>) {
+export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
   const { t } = useTranslation();
@@ -358,6 +384,21 @@ export default function BillsScreen({ onBack }: Readonly<BillsScreenProps>) {
       setIsPaying(false);
       const msg = err instanceof Error ? err.message : 'PAYMENT FAILED';
       setPayError(`ERROR: ${msg.toUpperCase()}`);
+    }
+  };
+
+  const handleAddToCalendar = async (tagihan: Tagihan) => {
+    try {
+      const result = await addBillToCalendar(tagihan.title, tagihan.amount, tagihan.dueDate);
+      if (result.success) {
+        Alert.alert(t('appName'), t('calendarSuccess'));
+      } else if (result.error === 'PERMISSION_DENIED') {
+        Alert.alert(t('appName'), t('calendarPermissionDenied'));
+      } else {
+        Alert.alert(t('appName'), t('calendarError'));
+      }
+    } catch {
+      Alert.alert(t('appName'), t('calendarError'));
     }
   };
 
@@ -454,6 +495,7 @@ export default function BillsScreen({ onBack }: Readonly<BillsScreenProps>) {
             tagihan={item}
             index={index}
             onPayPress={handleOpenPayModal}
+            onAddToCalendar={handleAddToCalendar}
           />
         )}
         ListHeaderComponent={renderHeader}
@@ -881,6 +923,9 @@ const getStyles = (colors: ColorTheme) =>
       minWidth: 90,
     },
     cardFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       marginTop: Spacing.two,
     },
     footerDateRow: {
@@ -891,6 +936,22 @@ const getStyles = (colors: ColorTheme) =>
     footerDateText: {
       color: colors.textMuted,
       fontSize: Typography.scale.xs.fontSize,
+    },
+    calendarButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 4,
+      paddingHorizontal: Spacing.two,
+      borderRadius: BorderRadius.sm,
+      backgroundColor: colors.backgroundSelected,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    calendarButtonText: {
+      color: colors.accent,
+      fontSize: Typography.scale.xs.fontSize,
+      letterSpacing: 0.2,
     },
     emptyContainer: {
       padding: Spacing.six,

@@ -38,7 +38,7 @@ import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Language, SettingsScreenProps, ThemeMode } from '@/types';
 
-export default function SettingsScreen({ onBack }: Readonly<SettingsScreenProps>) {
+export default function SettingsScreen(_props: Readonly<SettingsScreenProps>) {
   const colors = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
 

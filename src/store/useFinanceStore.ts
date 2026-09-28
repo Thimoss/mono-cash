@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AddKantongInput,
   AddTagihanInput,
@@ -44,16 +46,18 @@ function generateUniqueId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; // NOSONAR
 }
 
-export const useFinanceStore = create<FinanceState>((set, get) => ({
-  kantongs: [],
-  transaksis: [],
-  tagihans: [],
-  wishlists: [],
-  wishlistLogs: {},
-  themeMode: 'dark',
-  language: 'id',
-  isLoading: false,
-  error: null,
+export const useFinanceStore = create<FinanceState>()(
+  persist(
+    (set, get) => ({
+      kantongs: [],
+      transaksis: [],
+      tagihans: [],
+      wishlists: [],
+      wishlistLogs: {},
+      themeMode: 'dark',
+      language: 'id',
+      isLoading: false,
+      error: null,
 
   setThemeMode: (mode: ThemeMode) => set({ themeMode: mode }),
   toggleTheme: () =>
@@ -513,4 +517,16 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       };
     }
   },
-}));
+  }),
+  {
+    name: 'monocash-settings-storage',
+    storage: createJSONStorage(() => AsyncStorage),
+    partialize: (state) => ({
+      themeMode: state.themeMode,
+      language: state.language,
+    }),
+  }
+)
+);
+
+export const useSettingsStore = useFinanceStore;

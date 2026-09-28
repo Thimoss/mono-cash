@@ -6,7 +6,8 @@ export function useTranslation() {
   const language = useFinanceStore((state) => state.language);
 
   const t = useCallback(
-    (key: TranslationKey): string => getTranslation(language, key),
+    (key: TranslationKey, params?: Record<string, string | number>): string =>
+      getTranslation(language, key, params),
     [language],
   );
 

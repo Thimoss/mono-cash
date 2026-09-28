@@ -289,7 +289,9 @@ function WishlistCard({
   );
 }
 
-export default function WishlistScreen({ onBack, onSelectWishlist }: Readonly<WishlistScreenProps>) {
+export default function WishlistScreen({
+  onSelectWishlist,
+}: Readonly<WishlistScreenProps>) {
   const colors = useTheme();
   const themeMode = useFinanceStore((state) => state.themeMode);
   const { t } = useTranslation();

@@ -119,6 +119,12 @@ const translations = {
     billsSelectKantong: 'SELECT KANTONG FOR DEDUCTION',
     billsConfirmPay: 'CONFIRM & PAY',
     billsCancel: 'CANCEL',
+    billsAddToCalendar: 'Add to Calendar',
+    calendarEventTitle: '🔔 MonoCash: Pay {name}',
+    calendarEventNotes: 'Bill Details:\n💳 Amount: {amount}\n📅 Due Date: {date}\n\nPlease prepare the funds! Once paid, mark it as completed in the MonoCash app to keep your cash flow synchronized.',
+    calendarSuccess: 'Bill successfully added to device Calendar!',
+    calendarPermissionDenied: 'Calendar permission was denied. Please allow calendar access in Settings.',
+    calendarError: 'Failed to add to Calendar.',
 
     // Wishlist
     wishlistPageTitle: 'Wishlist',
@@ -359,6 +365,12 @@ const translations = {
     billsSelectKantong: 'PILIH KANTONG UNTUK DEBIT',
     billsConfirmPay: 'KONFIRMASI & BAYAR',
     billsCancel: 'BATAL',
+    billsAddToCalendar: 'Tambah ke Kalender',
+    calendarEventTitle: '🔔 MonoCash: Bayar {name}',
+    calendarEventNotes: 'Detail Tagihan:\n💳 Nominal: {amount}\n📅 Jatuh Tempo: {date}\n\nJangan lupa siapkan dananya! Jika sudah dibayar, catat pelunasannya di aplikasi MonoCash agar arus kas kamu tetap sinkron.',
+    calendarSuccess: 'Tagihan berhasil ditambahkan ke Kalender HP!',
+    calendarPermissionDenied: 'Izin kalender ditolak. Harap izinkan akses kalender di Pengaturan.',
+    calendarError: 'Gagal menambahkan ke Kalender.',
 
     // Wishlist
     wishlistPageTitle: 'Impian',
@@ -484,8 +496,18 @@ const translations = {
   },
 } as const;
 
-export function getTranslation(lang: Language, key: TranslationKey): string {
-  return translations[lang][key];
+export function getTranslation(
+  lang: Language,
+  key: TranslationKey,
+  params?: Record<string, string | number>
+): string {
+  let text: string = translations[lang][key];
+  if (params) {
+    for (const [paramKey, value] of Object.entries(params)) {
+      text = text.replaceAll(`{${paramKey}}`, String(value));
+    }
+  }
+  return text;
 }
 
 export default translations;
