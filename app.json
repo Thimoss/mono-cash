@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mono-cash",
+    "name": "MonoCash",
     "slug": "mono-cash",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/expo.icon/splash.png",
-      "resizeMode": "contain",
+      "resizeMode": "covers",
       "backgroundColor": "#121214"
     },
     "ios": {
@@ -27,8 +27,11 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "READ_CALENDAR",
-        "WRITE_CALENDAR"
-      ]
+        "WRITE_CALENDAR",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
+      ],
+      "package": "com.thimoss.monocash"
     },
     "web": {
       "output": "static",
@@ -58,6 +61,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "363ee7f0-374f-4f02-b1ec-0d547e13b153"
+      }
     }
   }
 }
