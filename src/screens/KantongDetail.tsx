@@ -15,7 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import {
   ArrowDownLeft,
-  ArrowLeft,
   ArrowUpRight,
   Briefcase,
   Car,
@@ -31,6 +30,7 @@ import {
   X,
   Zap,
 } from 'lucide-react-native';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, MonospaceFamily, Spacing, Typography } from '@/constants/theme';
@@ -207,15 +207,11 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
           backgroundColor={colors.background}
           style={themeMode === 'light' ? 'dark' : 'light'}
         />
-        <View style={styles.appBar}>
-          <Pressable onPress={onBack} style={styles.backButton} hitSlop={8}>
-            <ArrowLeft size={20} color={colors.text} />
-          </Pressable>
-          <ThemedText weight="bold" style={styles.appBarTitle}>
-            {t('kantongNotFound')}
-          </ThemedText>
-          <View style={styles.appBarPlaceholder} />
-        </View>
+        <ScreenHeader
+          title={t('kantongNotFound')}
+          showBack
+          onBack={onBack}
+        />
         <View style={styles.notFoundContainer}>
           <View style={styles.notFoundIconBox}>
             <Inbox size={32} color={colors.textSecondary} />
@@ -422,15 +418,11 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
       />
 
       {/* Top App Bar */}
-      <View style={styles.appBar}>
-        <Pressable onPress={onBack} style={styles.backButton} hitSlop={8}>
-          <ArrowLeft size={20} color={colors.text} />
-        </Pressable>
-        <ThemedText weight="bold" style={styles.appBarTitle} numberOfLines={1}>
-          {kantong.name}
-        </ThemedText>
-        <View style={styles.appBarPlaceholder} />
-      </View>
+      <ScreenHeader
+        title={kantong.name}
+        showBack
+        onBack={onBack}
+      />
 
       <FlatList
         data={kantongTransaksis}
@@ -593,32 +585,6 @@ const getStyles = (colors: ColorTheme) =>
     screen: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    appBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.cardBorder,
-      backgroundColor: colors.background,
-    },
-    appBarPlaceholder: {
-      width: 36,
-    },
-    appBarTitle: {
-      color: colors.text,
-      fontSize: Typography.scale.base.fontSize,
-      letterSpacing: 0.3,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      borderRadius: BorderRadius.md,
-      backgroundColor: colors.backgroundSelected,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     listContent: {
       padding: Spacing.three,

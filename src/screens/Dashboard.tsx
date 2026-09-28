@@ -165,7 +165,7 @@ export default function Dashboard({
             <Wallet size={18} color={Palette.pureWhite} />
           </View>
           <View>
-            <ThemedText weight="bold" style={styles.appBarTitle}>
+            <ThemedText variant="h3" weight="bold" style={styles.appBarTitle}>
               {t('appName')}
             </ThemedText>
             <ThemedText variant="caption" style={styles.appBarSubtitle}>
@@ -331,7 +331,7 @@ const getStyles = (colors: ColorTheme) =>
     appBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: Spacing.two,
+      paddingVertical: Spacing.two * 1.5,
       marginBottom: Spacing.three,
     },
     appBarBranding: {

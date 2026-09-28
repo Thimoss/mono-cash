@@ -79,6 +79,24 @@ const weightStyles = StyleSheet.create({
 });
 
 const variantStyles = StyleSheet.create({
+  h1: {
+    fontSize: Typography.scale['3xl'].fontSize,
+    lineHeight: Typography.scale['3xl'].lineHeight,
+    letterSpacing: Typography.scale['3xl'].letterSpacing,
+    fontWeight: Typography.weight.bold,
+  },
+  h2: {
+    fontSize: Typography.scale['2xl'].fontSize,
+    lineHeight: Typography.scale['2xl'].lineHeight,
+    letterSpacing: Typography.scale['2xl'].letterSpacing,
+    fontWeight: Typography.weight.bold,
+  },
+  h3: {
+    fontSize: Typography.scale.xl.fontSize,
+    lineHeight: Typography.scale.xl.lineHeight,
+    letterSpacing: Typography.scale.xl.letterSpacing,
+    fontWeight: Typography.weight.semibold,
+  },
   title: {
     fontSize: Typography.scale['3xl'].fontSize,
     lineHeight: Typography.scale['3xl'].lineHeight,

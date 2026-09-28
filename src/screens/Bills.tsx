@@ -13,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import {
   AlertCircle,
-  ArrowLeft,
   Calendar,
   CheckCircle2,
   Clock,
@@ -27,6 +26,7 @@ const StatusBar = ExpoStatusBar as React.ComponentType<
   React.ComponentProps<typeof ExpoStatusBar> & { backgroundColor?: string }
 >;
 import { ActionModal } from '@/components/ActionModal';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
@@ -363,26 +363,6 @@ export default function BillsScreen({ onBack }: Readonly<BillsScreenProps>) {
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
-      <View style={styles.appBar}>
-        {onBack ? (
-          <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
-            <ArrowLeft size={16} color={colors.text} />
-            <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-              {t('navDashboard').toUpperCase()}
-            </ThemedText>
-          </Pressable>
-        ) : (
-          <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
-            {t('billsPageTitle')}
-          </ThemedText>
-        )}
-        <View style={styles.countBadge}>
-          <ThemedText variant="caption" style={styles.activeTag}>
-            {`${t('dashboardTotal').toUpperCase()}: ${tagihans.length}`}
-          </ThemedText>
-        </View>
-      </View>
-
       <View style={styles.summaryBox}>
         <ThemedText variant="caption" style={styles.summaryLabel}>
           {t('billsTotalUnpaid')}
@@ -454,6 +434,17 @@ export default function BillsScreen({ onBack }: Readonly<BillsScreenProps>) {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
       <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
+
+      <ScreenHeader
+        title={t('billsPageTitle')}
+        rightElement={
+          <View style={styles.countBadge}>
+            <ThemedText variant="caption" style={styles.activeTag}>
+              {`${t('dashboardTotal')}: ${tagihans.length}`}
+            </ThemedText>
+          </View>
+        }
+      />
 
       <FlatList
         data={sortedTagihans}
@@ -624,34 +615,6 @@ const getStyles = (colors: ColorTheme) =>
     headerSection: {
       paddingTop: Spacing.two,
       paddingBottom: Spacing.three,
-    },
-    appBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingBottom: Spacing.two,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.cardBorder,
-      marginBottom: Spacing.three,
-    },
-    appBarTitle: {
-      letterSpacing: 1,
-      color: colors.text,
-    },
-    navButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.one * 1.5,
-      paddingVertical: Spacing.one,
-      paddingHorizontal: Spacing.two,
-      borderRadius: BorderRadius.md,
-      backgroundColor: colors.backgroundSelected,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    navButtonText: {
-      color: colors.text,
-      letterSpacing: 0.5,
     },
     countBadge: {
       paddingVertical: 2,

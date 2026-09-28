@@ -100,7 +100,7 @@ const translations = {
     errFailedCreateWishlist: 'FAILED TO CREATE WISHLIST TARGET',
 
     // Bills
-    billsPageTitle: 'MONOCASH // BILLS',
+    billsPageTitle: 'Bills',
     billsTotalUnpaid: 'TOTAL UNPAID OBLIGATIONS',
     billsOverdue: 'OVERDUE',
     billsDueSoon: 'DUE <=',
@@ -121,7 +121,7 @@ const translations = {
     billsCancel: 'CANCEL',
 
     // Wishlist
-    wishlistPageTitle: 'MONOCASH // WISHLIST',
+    wishlistPageTitle: 'Wishlist',
     wishlistAggBalance: 'AGGREGATED KANTONG BALANCE',
     wishlistActiveTargetsCost: 'ACTIVE TARGETS COST',
     wishlistOverallCoverage: 'OVERALL COVERAGE',
@@ -340,7 +340,7 @@ const translations = {
     errFailedCreateWishlist: 'GAGAL MEMBUAT TARGET IMPIAN',
 
     // Bills
-    billsPageTitle: 'MONOCASH // TAGIHAN',
+    billsPageTitle: 'Tagihan',
     billsTotalUnpaid: 'TOTAL KEWAJIBAN BELUM DIBAYAR',
     billsOverdue: 'TERLAMBAT',
     billsDueSoon: 'JATUH TEMPO <=',
@@ -361,7 +361,7 @@ const translations = {
     billsCancel: 'BATAL',
 
     // Wishlist
-    wishlistPageTitle: 'MONOCASH // IMPIAN',
+    wishlistPageTitle: 'Impian',
     wishlistAggBalance: 'SALDO KANTONG AGREGAT',
     wishlistActiveTargetsCost: 'BIAYA TARGET AKTIF',
     wishlistOverallCoverage: 'CAKUPAN KESELURUHAN',

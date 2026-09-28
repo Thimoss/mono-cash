@@ -151,6 +151,9 @@ export interface FinanceState {
 // ---------------------------------------------------------------------------
 
 export type ThemedTextVariant =
+  | 'h1'
+  | 'h2'
+  | 'h3'
   | 'title'
   | 'subtitle'
   | 'body'

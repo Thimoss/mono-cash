@@ -11,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import {
   AlertTriangle,
-  ArrowLeft,
   Check,
   CheckCircle2,
   Database,
@@ -32,6 +31,7 @@ const StatusBar = ExpoStatusBar as React.ComponentType<
 
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useTranslation } from '@/hooks/use-translation';
@@ -107,30 +107,17 @@ export default function SettingsScreen({ onBack }: Readonly<SettingsScreenProps>
       <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
 
       {/* Top App Bar */}
-      <View style={styles.appBar}>
-        {onBack ? (
-          <Pressable
-            onPress={onBack}
-            style={styles.backButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-          >
-            <ArrowLeft size={20} color={colors.text} />
-          </Pressable>
-        ) : (
-          <View style={styles.backButtonPlaceholder} />
-        )}
-        <ThemedText weight="bold" style={styles.appBarTitle}>
-          {t('settingsPageTitle')}
-        </ThemedText>
-        <View style={styles.versionBadge}>
-          <Info size={12} color={colors.textSecondary} />
-          <ThemedText variant="caption" style={styles.versionText}>
-            v2.1.0
-          </ThemedText>
-        </View>
-      </View>
+      <ScreenHeader
+        title={t('settingsPageTitle')}
+        rightElement={
+          <View style={styles.versionBadge}>
+            <Info size={12} color={colors.textSecondary} />
+            <ThemedText variant="caption" style={styles.versionText}>
+              v2.1.0
+            </ThemedText>
+          </View>
+        }
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Feedback Alerts */}
@@ -510,34 +497,6 @@ const getStyles = (colors: ColorTheme) =>
     screen: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    appBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.cardBorder,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      borderRadius: BorderRadius.md,
-      backgroundColor: colors.backgroundSelected,
-      borderWidth: 1,
-      borderColor: colors.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    backButtonPlaceholder: {
-      width: 36,
-      height: 36,
-    },
-    appBarTitle: {
-      fontSize: Typography.scale.md.fontSize,
-      color: colors.text,
-      letterSpacing: 0.3,
     },
     versionBadge: {
       flexDirection: 'row',

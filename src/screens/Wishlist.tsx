@@ -13,7 +13,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import {
-  ArrowLeft,
   CheckCircle2,
   ExternalLink,
   Sparkles,
@@ -27,6 +26,7 @@ const StatusBar = ExpoStatusBar as React.ComponentType<
 >;
 
 import { ActionModal } from '@/components/ActionModal';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
@@ -380,27 +380,6 @@ export default function WishlistScreen({ onBack, onSelectWishlist }: Readonly<Wi
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
-      {/* App Bar Navigation */}
-      <View style={styles.appBar}>
-        {onBack ? (
-          <Pressable onPress={onBack} style={styles.navButton} hitSlop={8}>
-            <ArrowLeft size={16} color={colors.text} />
-            <ThemedText variant="caption" weight="bold" style={styles.navButtonText}>
-              {t('navDashboard').toUpperCase()}
-            </ThemedText>
-          </Pressable>
-        ) : (
-          <ThemedText variant="caption" weight="bold" style={styles.appBarTitle}>
-            {t('wishlistPageTitle')}
-          </ThemedText>
-        )}
-        <View style={styles.countBadge}>
-          <ThemedText variant="caption" style={styles.activeTag}>
-            {`${t('dashboardTotal').toUpperCase()}: ${wishlists.length}`}
-          </ThemedText>
-        </View>
-      </View>
-
       {/* Aggregate Balance vs Wishlist Stackup Box */}
       <View style={styles.summaryBox}>
         <View style={styles.summaryTopRow}>
@@ -550,6 +529,17 @@ export default function WishlistScreen({ onBack, onSelectWishlist }: Readonly<Wi
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
       <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
 
+      <ScreenHeader
+        title={t('wishlistPageTitle')}
+        rightElement={
+          <View style={styles.countBadge}>
+            <ThemedText variant="caption" style={styles.activeTag}>
+              {`${t('dashboardTotal')}: ${wishlists.length}`}
+            </ThemedText>
+          </View>
+        }
+      />
+
       <FlatList
         data={filteredWishlists}
         keyExtractor={(item) => item.id}
@@ -662,34 +652,6 @@ const getStyles = (colors: ColorTheme) =>
     headerSection: {
       paddingTop: Spacing.two,
       paddingBottom: Spacing.three,
-    },
-    appBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingBottom: Spacing.two,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.cardBorder,
-      marginBottom: Spacing.three,
-    },
-    appBarTitle: {
-      letterSpacing: 1,
-      color: colors.text,
-    },
-    navButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.one * 1.5,
-      paddingVertical: Spacing.one,
-      paddingHorizontal: Spacing.two,
-      borderRadius: BorderRadius.md,
-      backgroundColor: colors.backgroundSelected,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    navButtonText: {
-      color: colors.text,
-      letterSpacing: 0.5,
     },
     countBadge: {
       paddingVertical: 2,

@@ -16,7 +16,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import {
-  ArrowLeft,
   Calendar,
   CheckCircle2,
   ExternalLink,
@@ -31,6 +30,7 @@ const StatusBar = ExpoStatusBar as React.ComponentType<
   React.ComponentProps<typeof ExpoStatusBar> & { backgroundColor?: string }
 >;
 
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, ColorTheme, Palette, Spacing, Typography } from '@/constants/theme';
@@ -161,14 +161,11 @@ export default function WishlistDetail({ wishlistId, onBack }: Readonly<Wishlist
     return (
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
         <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
-        <View style={styles.header}>
-          <Pressable onPress={onBack} style={styles.backButton} hitSlop={8}>
-            <ArrowLeft size={20} color={colors.text} />
-          </Pressable>
-          <ThemedText weight="bold" style={styles.headerTitle}>
-            {t('wishlistDetailTitle')}
-          </ThemedText>
-        </View>
+        <ScreenHeader
+          title={t('wishlistDetailTitle')}
+          showBack
+          onBack={onBack}
+        />
 
         <View style={styles.notFoundContainer}>
           <Sparkles size={40} color={colors.textSecondary} />
@@ -379,15 +376,11 @@ export default function WishlistDetail({ wishlistId, onBack }: Readonly<Wishlist
       <StatusBar backgroundColor={colors.background} style={themeMode === 'light' ? 'dark' : 'light'} />
 
       {/* Screen Header */}
-      <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.backButton} hitSlop={8}>
-          <ArrowLeft size={20} color={colors.text} />
-        </Pressable>
-        <ThemedText weight="bold" numberOfLines={1} style={styles.headerTitle}>
-          {wishlist.title.toUpperCase()}
-        </ThemedText>
-        <View style={styles.headerRightSpacer} />
-      </View>
+      <ScreenHeader
+        title={wishlist.title}
+        showBack
+        onBack={onBack}
+      />
 
       {/* Content List with Logs */}
       <FlatList
@@ -513,29 +506,6 @@ const getStyles = (colors: ColorTheme) =>
     screen: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: Spacing.four,
-      paddingVertical: Spacing.two * 1.5,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      backgroundColor: colors.background,
-    },
-    backButton: {
-      padding: Spacing.one,
-      marginRight: Spacing.two,
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: Typography.scale.base.fontSize,
-      color: colors.text,
-      letterSpacing: 0.3,
-    },
-    headerRightSpacer: {
-      width: 24,
     },
     listContent: {
       paddingHorizontal: Spacing.four,
