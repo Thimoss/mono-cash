@@ -8,7 +8,8 @@
     "scheme": "monocash",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/expo.icon/splash.png",
+      "image": "./assets/expo.icon/icon-foreground.png",
+      "resizeMode": "contain",
       "backgroundColor": "#121214"
     },
     "ios": {
@@ -22,6 +23,11 @@
       "adaptiveIcon": {
         "backgroundColor": "#121214",
         "foregroundImage": "./assets/expo.icon/icon-foreground.png"
+      },
+      "splash": {
+        "image": "./assets/expo.icon/icon-foreground.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#121214"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -42,7 +48,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#121214",
-          "image": "./assets/expo.icon/splash.png",
+          "image": "./assets/expo.icon/icon-foreground.png",
           "resizeMode": "contain"
         }
       ],
