@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -28,6 +27,7 @@ const StatusBar = ExpoStatusBar as React.ComponentType<
   React.ComponentProps<typeof ExpoStatusBar> & { backgroundColor?: string }
 >;
 import { ActionModal } from '@/components/ActionModal';
+import { CustomAlert, CustomAlertType } from '@/components/CustomAlert';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
@@ -197,101 +197,102 @@ function TagihanCard({
   return (
     <Animated.View
       entering={FadeInDown.delay(index * 50).duration(300).springify().damping(15)}
-      style={[styles.cardContainer, cardStyle]}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardTitleBox}>
-          <View style={styles.titleIconRow}>
-            <View
-              style={[
-                styles.billIconBox,
-                billIconStyle,
-              ]}
-            >
-              <Receipt
-                size={16}
-                color={billIconColor}
-              />
-            </View>
-            <View style={styles.titleTextContainer}>
-              <ThemedText
-                weight="bold"
+      <View style={[styles.cardContainer, cardStyle]}>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardTitleBox}>
+            <View style={styles.titleIconRow}>
+              <View
                 style={[
-                  styles.cardTitle,
-                  tagihan.isPaid && styles.titlePaidText,
+                  styles.billIconBox,
+                  billIconStyle,
                 ]}
               >
-                {tagihan.title.toUpperCase()}
-              </ThemedText>
-              {tagihan.isRecurring && (
-                <View style={styles.recurringBox}>
-                  <RotateCcw size={10} color={colors.textSecondary} />
-                  <ThemedText variant="caption" style={styles.recurringLabel}>
-                    {tagihan.frequency ?? 'MONTHLY'}
-                  </ThemedText>
-                </View>
-              )}
+                <Receipt
+                  size={16}
+                  color={billIconColor}
+                />
+              </View>
+              <View style={styles.titleTextContainer}>
+                <ThemedText
+                  weight="bold"
+                  style={[
+                    styles.cardTitle,
+                    tagihan.isPaid && styles.titlePaidText,
+                  ]}
+                >
+                  {tagihan.title.toUpperCase()}
+                </ThemedText>
+                {tagihan.isRecurring && (
+                  <View style={styles.recurringBox}>
+                    <RotateCcw size={10} color={colors.textSecondary} />
+                    <ThemedText variant="caption" style={styles.recurringLabel}>
+                      {tagihan.frequency ?? 'MONTHLY'}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
+
+          {renderBadge()}
         </View>
 
-        {renderBadge()}
-      </View>
+        <View style={styles.cardDivider} />
 
-      <View style={styles.cardDivider} />
-
-      <View style={styles.cardBody}>
-        <View>
-          <ThemedText variant="caption" style={styles.amountLabel}>
-            {t('billsAmountDue')}
-          </ThemedText>
-          <ThemedText
-            variant="amount"
-            style={[
-              styles.amountText,
-              amountStyle,
-            ]}
-          >
-            {formatCurrency(tagihan.amount)}
-          </ThemedText>
-        </View>
-
-        {!tagihan.isPaid && onPayPress && (
-          <ThemedButton
-            title={t('billsPayNow')}
-            size="sm"
-            variant={payVariant}
-            onPress={() => onPayPress(tagihan)}
-            style={styles.payButton}
-          />
-        )}
-      </View>
-
-      <View style={styles.cardFooter}>
-        <View style={styles.footerDateRow}>
-          <Clock size={12} color={colors.textMuted} />
-          <ThemedText variant="caption" style={styles.footerDateText}>
-            {`${t('billsDeadline')}: ${formatDueDate(tagihan.dueDate)}`}
-          </ThemedText>
-        </View>
-
-        {!tagihan.isPaid && onAddToCalendar && (
-          <Pressable
-            onPress={() => onAddToCalendar(tagihan)}
-            style={({ pressed }) => [
-              styles.calendarButton,
-              pressed && { opacity: 0.7 },
-            ]}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t('billsAddToCalendar')}
-          >
-            <CalendarPlus size={13} color={colors.accent} />
-            <ThemedText variant="caption" weight="medium" style={styles.calendarButtonText}>
-              {t('billsAddToCalendar')}
+        <View style={styles.cardBody}>
+          <View>
+            <ThemedText variant="caption" style={styles.amountLabel}>
+              {t('billsAmountDue')}
             </ThemedText>
-          </Pressable>
-        )}
+            <ThemedText
+              variant="amount"
+              style={[
+                styles.amountText,
+                amountStyle,
+              ]}
+            >
+              {formatCurrency(tagihan.amount)}
+            </ThemedText>
+          </View>
+
+          {!tagihan.isPaid && onPayPress && (
+            <ThemedButton
+              title={t('billsPayNow')}
+              size="sm"
+              variant={payVariant}
+              onPress={() => onPayPress(tagihan)}
+              style={styles.payButton}
+            />
+          )}
+        </View>
+
+        <View style={styles.cardFooter}>
+          <View style={styles.footerDateRow}>
+            <Clock size={12} color={colors.textMuted} />
+            <ThemedText variant="caption" style={styles.footerDateText}>
+              {`${t('billsDeadline')}: ${formatDueDate(tagihan.dueDate)}`}
+            </ThemedText>
+          </View>
+
+          {!tagihan.isPaid && onAddToCalendar && (
+            <Pressable
+              onPress={() => onAddToCalendar(tagihan)}
+              style={({ pressed }) => [
+                styles.calendarButton,
+                pressed && { opacity: 0.7 },
+              ]}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('billsAddToCalendar')}
+            >
+              <CalendarPlus size={13} color={colors.accent} />
+              <ThemedText variant="caption" weight="medium" style={styles.calendarButtonText}>
+                {t('billsAddToCalendar')}
+              </ThemedText>
+            </Pressable>
+          )}
+        </View>
       </View>
     </Animated.View>
   );
@@ -311,6 +312,17 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: CustomAlertType;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
 
   useEffect(() => {
     loadTagihans();
@@ -391,14 +403,34 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
     try {
       const result = await addBillToCalendar(tagihan.title, tagihan.amount, tagihan.dueDate);
       if (result.success) {
-        Alert.alert(t('appName'), t('calendarSuccess'));
+        setAlertConfig({
+          visible: true,
+          title: t('appName'),
+          message: t('calendarSuccess'),
+          type: 'success',
+        });
       } else if (result.error === 'PERMISSION_DENIED') {
-        Alert.alert(t('appName'), t('calendarPermissionDenied'));
+        setAlertConfig({
+          visible: true,
+          title: t('appName'),
+          message: t('calendarPermissionDenied'),
+          type: 'warning',
+        });
       } else {
-        Alert.alert(t('appName'), t('calendarError'));
+        setAlertConfig({
+          visible: true,
+          title: t('appName'),
+          message: t('calendarError'),
+          type: 'error',
+        });
       }
     } catch {
-      Alert.alert(t('appName'), t('calendarError'));
+      setAlertConfig({
+        visible: true,
+        title: t('appName'),
+        message: t('calendarError'),
+        type: 'error',
+      });
     }
   };
 
@@ -640,6 +672,15 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
           </View>
         </View>
       </Modal>
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        confirmText="OK"
+      />
     </SafeAreaView>
   );
 }

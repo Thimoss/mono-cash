@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Dimensions,
   Modal,
-  Pressable,
   StyleSheet,
   View,
 } from 'react-native';
@@ -11,7 +10,6 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
-  Info,
 } from 'lucide-react-native';
 import { BorderRadius, Palette, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -109,7 +107,7 @@ export function CustomAlert({
 
           {/* Title */}
           <ThemedText
-            variant="h4"
+            variant="title"
             weight="bold"
             style={styles.title}
           >

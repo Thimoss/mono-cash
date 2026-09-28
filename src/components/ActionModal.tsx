@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, {
   // eslint-disable-next-line @typescript-eslint/no-deprecated
@@ -57,6 +58,37 @@ const SPRING_CONFIG = {
   stiffness: 280,
   mass: 0.8,
 };
+
+function formatIsoDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseIsoDate(iso: string): Date {
+  if (!iso) return new Date();
+  const parts = iso.split('-');
+  if (parts.length === 3) {
+    const year = Number.parseInt(parts[0], 10);
+    const month = Number.parseInt(parts[1], 10) - 1;
+    const day = Number.parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (!Number.isNaN(d.getTime())) {
+      return d;
+    }
+  }
+  return new Date();
+}
+
+function formatDisplayDate(iso: string, locale: string): string {
+  const d = parseIsoDate(iso);
+  return d.toLocaleDateString(locale === 'id' ? 'id-ID' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
 function getCategoryIcon(category: string, size = 15, color = '#6B7280') {
   switch (category) {
@@ -305,7 +337,7 @@ function CategoryPicker({
 
 export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProps>) {
   const colors = useTheme();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   // Resolve all translated strings at the top component level (outside any worklet scope)
   const strings = useMemo(
@@ -385,6 +417,7 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
 
   const styles = useMemo(() => getStyles(colors), [colors]);
   const { kantongs, addKantong, addTransaksi, addTagihan, addWishlist } = useFinanceStore();
+  const themeMode = useFinanceStore((state) => state.themeMode);
 
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
@@ -414,9 +447,21 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
   // Form State: Tagihan
   const [tagihanTitle, setTagihanTitle] = useState('');
   const [tagihanAmount, setTagihanAmount] = useState('');
-  const [tagihanDueDate, setTagihanDueDate] = useState('');
+  const [tagihanDueDate, setTagihanDueDate] = useState(() => formatIsoDate(new Date()));
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [tagihanIsRecurring, setTagihanIsRecurring] = useState(false);
   const [tagihanFrequency, setTagihanFrequency] = useState<TagihanFrequency>('MONTHLY');
+
+  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'set' && selectedDate) {
+        setTagihanDueDate(formatIsoDate(selectedDate));
+      }
+    } else if (selectedDate) {
+      setTagihanDueDate(formatIsoDate(selectedDate));
+    }
+  };
 
   // Form State: Wishlist
   const [wishlistTitle, setWishlistTitle] = useState('');
@@ -561,7 +606,7 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
 
       setTagihanTitle('');
       setTagihanAmount('');
-      setTagihanDueDate('');
+      setTagihanDueDate(formatIsoDate(new Date()));
       setTagihanIsRecurring(false);
       setTagihanFrequency('MONTHLY');
       setIsSubmitting(false);
@@ -854,14 +899,90 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
                   <ThemedText variant="caption" style={styles.fieldLabel}>
                     {strings.modalDueDate}
                   </ThemedText>
-                  <TextInput
-                    value={tagihanDueDate}
-                    onChangeText={setTagihanDueDate}
-                    placeholder="2026-10-01"
-                    placeholderTextColor={colors.textSecondary}
-                    style={[styles.input, styles.monoInput]}
-                    autoCapitalize="none"
-                  />
+                  <Pressable
+                    style={[
+                      styles.input,
+                      styles.datePickerTrigger,
+                      {
+                        backgroundColor: colors.backgroundElement,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <View style={styles.datePickerTriggerLeft}>
+                      <Calendar size={18} color={colors.accent} />
+                      <ThemedText variant="body" weight="medium" style={styles.datePickerValueText}>
+                        {formatDisplayDate(tagihanDueDate, language)}
+                      </ThemedText>
+                    </View>
+                    <View
+                      style={[
+                        styles.datePickerBadge,
+                        {
+                          backgroundColor: colors.backgroundSelected,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                    >
+                      <ThemedText variant="caption" style={{ color: colors.textSecondary }}>
+                        {language === 'id' ? 'Ubah' : 'Change'}
+                      </ThemedText>
+                    </View>
+                  </Pressable>
+
+                  {Platform.OS === 'android' && showDatePicker && (
+                    <DateTimePicker
+                      value={parseIsoDate(tagihanDueDate)}
+                      mode="date"
+                      display="default"
+                      onChange={handleDateChange}
+                    />
+                  )}
+
+                  {Platform.OS === 'ios' && (
+                    <Modal
+                      visible={showDatePicker}
+                      transparent
+                      animationType="fade"
+                      onRequestClose={() => setShowDatePicker(false)}
+                    >
+                      <Pressable
+                        style={styles.datePickerBackdrop}
+                        onPress={() => setShowDatePicker(false)}
+                      >
+                        <Pressable
+                          style={[
+                            styles.datePickerModalContent,
+                            {
+                              backgroundColor: colors.card,
+                              borderColor: colors.border,
+                            },
+                          ]}
+                          onPress={(e) => e.stopPropagation()}
+                        >
+                          <View style={styles.datePickerModalHeader}>
+                            <ThemedText variant="body" weight="bold">
+                              {strings.modalDueDate}
+                            </ThemedText>
+                            <ThemedButton
+                              title={language === 'id' ? 'Selesai' : 'Done'}
+                              size="sm"
+                              variant="primary"
+                              onPress={() => setShowDatePicker(false)}
+                            />
+                          </View>
+                          <DateTimePicker
+                            value={parseIsoDate(tagihanDueDate)}
+                            mode="date"
+                            display="inline"
+                            themeVariant={themeMode === 'light' ? 'light' : 'dark'}
+                            onChange={handleDateChange}
+                          />
+                        </Pressable>
+                      </Pressable>
+                    </Modal>
+                  )}
 
                   <ThemedText variant="caption" style={styles.fieldLabel}>
                     {strings.modalBillRecurrence}
@@ -1389,6 +1510,53 @@ const getStyles = (colors: ColorTheme) =>
     },
     imageBtn: {
       flex: 1,
+    },
+    datePickerTrigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    datePickerTriggerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    datePickerValueText: {
+      fontSize: Typography.scale.base.fontSize,
+    },
+    datePickerBadge: {
+      paddingHorizontal: Spacing.two,
+      paddingVertical: 2,
+      borderRadius: BorderRadius.sm,
+      borderWidth: 1,
+    },
+    datePickerBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.three,
+    },
+    datePickerModalContent: {
+      width: '100%',
+      maxWidth: 360,
+      borderRadius: BorderRadius.xl,
+      borderWidth: 1,
+      padding: Spacing.three,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.35,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    datePickerModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingBottom: Spacing.two,
+      marginBottom: Spacing.two,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
   });
 
