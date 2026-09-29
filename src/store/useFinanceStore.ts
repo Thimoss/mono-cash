@@ -524,6 +524,71 @@ export const useFinanceStore = create<FinanceState>()(
       };
     }
   },
+
+  transferBalance: async (
+    fromKantongId: string,
+    toKantongId: string,
+    amount: number,
+    note: string,
+  ): Promise<void> => {
+    set({ isLoading: true, error: null });
+    try {
+      const { kantongs } = get();
+      const fromKantong = kantongs.find((k) => k.id === fromKantongId);
+      const toKantong = kantongs.find((k) => k.id === toKantongId);
+
+      if (!fromKantong) throw new Error(`Source kantong "${fromKantongId}" not found`);
+      if (!toKantong) throw new Error(`Destination kantong "${toKantongId}" not found`);
+
+      const now = new Date().toISOString();
+      const newFromBalance = fromKantong.balance - amount;
+      const newToBalance = toKantong.balance + amount;
+
+      const outDesc = note.trim() || `Transfer ke ${toKantong.name}`;
+      const inDesc = note.trim() || `Transfer dari ${fromKantong.name}`;
+
+      const outTx: Transaksi = {
+        id: generateUniqueId(),
+        kantongId: fromKantongId,
+        amount,
+        type: 'EXPENSE',
+        description: outDesc,
+        category: 'TRANSFER',
+        date: now,
+        createdAt: now,
+      };
+
+      const inTx: Transaksi = {
+        id: generateUniqueId(),
+        kantongId: toKantongId,
+        amount,
+        type: 'INCOME',
+        description: inDesc,
+        category: 'TRANSFER',
+        date: now,
+        createdAt: now,
+      };
+
+      await createTransaksi(outTx);
+      await createTransaksi(inTx);
+      await updateKantong(fromKantongId, { balance: newFromBalance });
+      await updateKantong(toKantongId, { balance: newToBalance });
+
+      set((state) => ({
+        transaksis: [outTx, inTx, ...state.transaksis],
+        kantongs: state.kantongs.map((k) => {
+          if (k.id === fromKantongId) return { ...k, balance: newFromBalance, updatedAt: now };
+          if (k.id === toKantongId) return { ...k, balance: newToBalance, updatedAt: now };
+          return k;
+        }),
+        isLoading: false,
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to transfer balance';
+      set({ error: errorMessage, isLoading: false });
+      throw err;
+    }
+  },
   }),
   {
     name: 'monocash-settings-storage',

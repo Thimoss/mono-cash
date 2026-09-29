@@ -30,6 +30,7 @@ import {
   X,
   Zap,
 } from 'lucide-react-native';
+import { ActionModal } from '@/components/ActionModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedButton } from '@/components/ThemedButton';
 import { ThemedText } from '@/components/ThemedText';
@@ -37,7 +38,7 @@ import { BorderRadius, ColorTheme, MonospaceFamily, Spacing, Typography } from '
 import { useTheme } from '@/hooks/use-theme';
 import { useTranslation } from '@/hooks/use-translation';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { KantongDetailProps, Transaksi } from '@/types';
+import { KantongDetailProps, Transaksi, TransaksiType } from '@/types';
 
 const StatusBar = ExpoStatusBar as React.ComponentType<
   React.ComponentProps<typeof ExpoStatusBar> & { backgroundColor?: string }
@@ -132,6 +133,15 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
     }
     return { totalIncome: income, totalExpense: expense };
   }, [kantongTransaksis]);
+
+  // Action Modal State
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [actionModalType, setActionModalType] = useState<TransaksiType>('EXPENSE');
+
+  const handleOpenActionModal = (type: TransaksiType) => {
+    setActionModalType(type);
+    setIsActionModalOpen(true);
+  };
 
   // Edit Modal State
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -299,30 +309,62 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
           </View>
         </View>
 
-        <View style={styles.cardActionsRow}>
+        {/* Transaction Action Shortcuts */}
+        <View style={styles.transactionShortcutsRow}>
           <ThemedButton
-            variant="secondary"
+            variant="outline"
             size="lg"
-            style={styles.cardActionBtn}
-            onPress={openEditModal}
+            style={[styles.transactionShortcutBtn, styles.incomeShortcutBtn]}
+            onPress={() => handleOpenActionModal('INCOME')}
           >
             <View style={styles.btnContentRow}>
-              <Edit2 size={15} color={colors.text} />
-              <ThemedText weight="semibold" style={styles.btnActionText}>
+              <ArrowDownLeft size={18} color={colors.success} />
+              <ThemedText weight="bold" style={[styles.shortcutBtnText, { color: colors.success }]}>
+                {t('income')}
+              </ThemedText>
+            </View>
+          </ThemedButton>
+
+          <ThemedButton
+            variant="outline"
+            size="lg"
+            style={[styles.transactionShortcutBtn, styles.expenseShortcutBtn]}
+            onPress={() => handleOpenActionModal('EXPENSE')}
+          >
+            <View style={styles.btnContentRow}>
+              <ArrowUpRight size={18} color={colors.danger} />
+              <ThemedText weight="bold" style={[styles.shortcutBtnText, { color: colors.danger }]}>
+                {t('expense')}
+              </ThemedText>
+            </View>
+          </ThemedButton>
+        </View>
+
+        {/* Secondary Management Row: Edit & Delete */}
+        <View style={styles.secondaryActionsRow}>
+          <ThemedButton
+            variant="secondary"
+            size="sm"
+            style={styles.secondaryActionBtn}
+            onPress={openEditModal}
+          >
+            <View style={styles.secondaryBtnContentRow}>
+              <Edit2 size={13} color={colors.textSecondary} />
+              <ThemedText weight="medium" style={styles.secondaryBtnText}>
                 {t('kantongEditTitle')}
               </ThemedText>
             </View>
           </ThemedButton>
 
           <ThemedButton
-            variant="danger"
-            size="lg"
-            style={[styles.cardActionBtn, styles.deleteActionBtn]}
+            variant="ghost"
+            size="sm"
+            style={[styles.secondaryActionBtn, styles.secondaryDeleteBtn]}
             onPress={() => setIsDeleteModalVisible(true)}
           >
-            <View style={styles.btnContentRow}>
-              <Trash2 size={15} color={colors.danger} />
-              <ThemedText weight="semibold" style={styles.btnDeleteText}>
+            <View style={styles.secondaryBtnContentRow}>
+              <Trash2 size={13} color={colors.danger} />
+              <ThemedText weight="medium" style={styles.secondaryDeleteText}>
                 {t('kantongDeleteTitle')}
               </ThemedText>
             </View>
@@ -443,7 +485,8 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
       >
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
             style={styles.keyboardAvoid}
           >
             <View style={styles.modalContainer}>
@@ -460,7 +503,7 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
                 </Pressable>
               </View>
 
-              <ScrollView contentContainerStyle={styles.modalBody}>
+              <ScrollView contentContainerStyle={[styles.modalBody, { flexGrow: 1, paddingBottom: 60 }]}>
                 {Boolean(editError) && (
                   <View style={styles.errorBox}>
                     <ThemedText variant="caption" style={styles.errorText}>
@@ -577,6 +620,16 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
           </View>
         </View>
       </Modal>
+      {/* Action Modal for Transactions */}
+      {kantong && (
+        <ActionModal
+          visible={isActionModalOpen}
+          mode="TRANSAKSI"
+          defaultKantongId={kantong.id}
+          defaultTransactionType={actionModalType}
+          onClose={() => setIsActionModalOpen(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -679,18 +732,48 @@ const getStyles = (colors: ColorTheme) =>
     analyticValue: {
       fontSize: Typography.scale.sm.fontSize,
     },
-    cardActionsRow: {
+    transactionShortcutsRow: {
       flexDirection: 'row',
-      gap: Spacing.two,
+      gap: 12,
+      marginTop: Spacing.three,
     },
-    cardActionBtn: {
+    transactionShortcutBtn: {
       flex: 1,
       height: 52,
+      minHeight: 52,
       borderRadius: BorderRadius.lg,
     },
-    deleteActionBtn: {
-      backgroundColor: 'rgba(239, 68, 68, 0.12)',
-      borderColor: 'rgba(239, 68, 68, 0.3)',
+    incomeShortcutBtn: {
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      borderColor: 'rgba(16, 185, 129, 0.28)',
+      borderWidth: 1,
+    },
+    expenseShortcutBtn: {
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      borderColor: 'rgba(239, 68, 68, 0.28)',
+      borderWidth: 1,
+    },
+    shortcutBtnText: {
+      fontSize: Typography.scale.sm.fontSize,
+      letterSpacing: 0.3,
+    },
+    secondaryActionsRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+      marginTop: Spacing.two,
+    },
+    secondaryActionBtn: {
+      flex: 1,
+      height: 38,
+      minHeight: 38,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    secondaryDeleteBtn: {
+      backgroundColor: 'transparent',
+      borderColor: 'transparent',
     },
     btnContentRow: {
       flexDirection: 'row',
@@ -698,13 +781,19 @@ const getStyles = (colors: ColorTheme) =>
       justifyContent: 'center',
       gap: 6,
     },
-    btnActionText: {
-      color: colors.text,
-      fontSize: Typography.scale.sm.fontSize,
+    secondaryBtnContentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
     },
-    btnDeleteText: {
+    secondaryBtnText: {
+      color: colors.textSecondary,
+      fontSize: Typography.scale.xs.fontSize,
+    },
+    secondaryDeleteText: {
       color: colors.danger,
-      fontSize: Typography.scale.sm.fontSize,
+      fontSize: Typography.scale.xs.fontSize,
     },
     sectionHeader: {
       flexDirection: 'row',

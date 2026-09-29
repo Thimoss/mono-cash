@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   Image,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -23,6 +22,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import {
   ArrowDownLeft,
+  ArrowLeftRight,
   ArrowUpRight,
   Briefcase,
   Calendar,
@@ -46,6 +46,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { BorderRadius, ColorTheme, MonospaceFamily, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useTranslation } from '@/hooks/use-translation';
+import { useKeyboardAnimation } from '@/hooks/useKeyboardAnimation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { ActionModalProps, Kantong, TagihanFrequency, TransaksiType } from '@/types';
 import { ThemedButton } from './ThemedButton';
@@ -185,12 +186,15 @@ function KantongSelector({
   );
 }
 
+export type TransactionFormType = TransaksiType | 'TRANSFER';
+
 interface TransactionTypeSelectorProps {
-  readonly activeType: TransaksiType;
-  readonly onSelectType: (type: TransaksiType) => void;
+  readonly activeType: TransactionFormType;
+  readonly onSelectType: (type: TransactionFormType) => void;
   readonly label: string;
   readonly expenseLabel: string;
   readonly incomeLabel: string;
+  readonly transferLabel: string;
   readonly colors: ColorTheme;
   readonly styles: ActionModalStyles;
 }
@@ -201,6 +205,7 @@ function TransactionTypeSelector({
   label,
   expenseLabel,
   incomeLabel,
+  transferLabel,
   colors,
   styles,
 }: Readonly<TransactionTypeSelectorProps>) {
@@ -261,6 +266,33 @@ function TransactionTypeSelector({
             ]}
           >
             {incomeLabel}
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={() => onSelectType('TRANSFER')}
+          style={[
+            styles.typeButton,
+            activeType === 'TRANSFER' && styles.typeButtonTransferSelected,
+          ]}
+        >
+          <ArrowLeftRight
+            size={16}
+            color={
+              activeType === 'TRANSFER'
+                ? '#FFFFFF'
+                : colors.accent
+            }
+          />
+          <ThemedText
+            variant="caption"
+            weight={activeType === 'TRANSFER' ? 'bold' : 'medium'}
+            style={[
+              styles.typeButtonText,
+              activeType === 'TRANSFER' && styles.typeButtonTextSelected,
+            ]}
+          >
+            {transferLabel}
           </ThemedText>
         </Pressable>
       </View>
@@ -335,7 +367,57 @@ function CategoryPicker({
   );
 }
 
-export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProps>) {
+function normalizeTransactionType(rawType?: string): TransactionFormType {
+  if (!rawType) return 'EXPENSE';
+  const upper = rawType.toUpperCase();
+  if (upper === 'INCOME') return 'INCOME';
+  if (upper === 'TRANSFER') return 'TRANSFER';
+  return 'EXPENSE';
+}
+
+function getValidCategoryForType(type: 'EXPENSE' | 'INCOME', currentCategory: string): string {
+  const allowed = type === 'EXPENSE' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  return (allowed as readonly string[]).includes(currentCategory) ? currentCategory : allowed[0];
+}
+
+function getInitialTransferKantongs(
+  kantongs: readonly Kantong[],
+  currentFromId: string,
+  currentToId: string,
+  defaultOrSelectedId?: string,
+): { fromId: string; toId: string } {
+  const resolvedFromId = currentFromId || defaultOrSelectedId || kantongs[0]?.id || '';
+  let resolvedToId = currentToId;
+  if (!resolvedToId && kantongs.length > 1) {
+    const other = kantongs.find((k) => k.id !== resolvedFromId);
+    if (other) {
+      resolvedToId = other.id;
+    }
+  }
+  return { fromId: resolvedFromId, toId: resolvedToId };
+}
+
+function getInitialTransactionState(
+  kantongs: readonly Kantong[],
+  selectedId: string,
+  defaultId?: string,
+): { selectedKantongId: string; fromKantongId: string; toKantongId: string } {
+  const baseId = defaultId || (kantongs.length > 0 && !selectedId ? kantongs[0].id : selectedId);
+  const otherKantong = kantongs.find((k) => k.id !== baseId);
+  return {
+    selectedKantongId: baseId,
+    fromKantongId: baseId,
+    toKantongId: otherKantong ? otherKantong.id : '',
+  };
+}
+
+export function ActionModal({
+  visible,
+  mode,
+  onClose,
+  defaultKantongId,
+  defaultTransactionType,
+}: Readonly<ActionModalProps>) {
   const colors = useTheme();
   const { t, language } = useTranslation();
 
@@ -377,6 +459,17 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
       modalTransactionType: t('modalTransactionType'),
       modalExpense: t('modalExpense'),
       modalIncome: t('modalIncome'),
+      modalTransfer: t('modalTransfer'),
+      modalFromKantong: t('modalFromKantong'),
+      modalToKantong: t('modalToKantong'),
+      modalTransferNote: t('modalTransferNote'),
+      modalTransferNotePlaceholder: t('modalTransferNotePlaceholder'),
+      modalSubmitTransfer: t('modalSubmitTransfer'),
+      errTransferSameKantong: t('errTransferSameKantong'),
+      errTransferSelectFrom: t('errTransferSelectFrom'),
+      errTransferSelectTo: t('errTransferSelectTo'),
+      errTransferInsufficientBalance: t('errTransferInsufficientBalance'),
+      errFailedTransfer: t('errFailedTransfer'),
       modalCategory: t('modalCategory'),
       modalAmountIdr: t('modalAmountIdr'),
       modalDescription: t('modalDescription'),
@@ -416,11 +509,16 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
   );
 
   const styles = useMemo(() => getStyles(colors), [colors]);
-  const { kantongs, addKantong, addTransaksi, addTagihan, addWishlist } = useFinanceStore();
+  const { kantongs, addKantong, addTransaksi, addTagihan, addWishlist, transferBalance } = useFinanceStore();
   const themeMode = useFinanceStore((state) => state.themeMode);
 
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
+  const { height: keyboardHeight } = useKeyboardAnimation();
+  const fakeView = useAnimatedStyle(
+    () => ({ height: Math.abs(keyboardHeight.value) }),
+    [],
+  );
 
   // Form State: Kantong
   const [kantongName, setKantongName] = useState('');
@@ -429,19 +527,30 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
   // Form State: Transaksi
   const [selectedKantongId, setSelectedKantongId] = useState<string>('');
   const [transaksiAmount, setTransaksiAmount] = useState('');
-  const [transaksiType, setTransaksiType] = useState<TransaksiType>('EXPENSE');
+  const [transaksiType, setTransaksiType] = useState<TransactionFormType>('EXPENSE');
   const [transaksiCategory, setTransaksiCategory] = useState<string>(EXPENSE_CATEGORIES[0]);
   const [transaksiDescription, setTransaksiDescription] = useState('');
 
-  const handleSelectTransaksiType = (type: TransaksiType) => {
+  // Form State: Transfer
+  const [transferFromKantongId, setTransferFromKantongId] = useState<string>('');
+  const [transferToKantongId, setTransferToKantongId] = useState<string>('');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferNote, setTransferNote] = useState('');
+
+  const handleSelectTransaksiType = (type: TransactionFormType) => {
     setTransaksiType(type);
-    if (type === 'EXPENSE') {
-      if (!(EXPENSE_CATEGORIES as readonly string[]).includes(transaksiCategory)) {
-        setTransaksiCategory(EXPENSE_CATEGORIES[0]);
-      }
-    } else if (!(INCOME_CATEGORIES as readonly string[]).includes(transaksiCategory)) {
-      setTransaksiCategory(INCOME_CATEGORIES[0]);
+    if (type === 'TRANSFER') {
+      const { fromId, toId } = getInitialTransferKantongs(
+        kantongs,
+        transferFromKantongId,
+        transferToKantongId,
+        selectedKantongId,
+      );
+      setTransferFromKantongId(fromId);
+      setTransferToKantongId(toId);
+      return;
     }
+    setTransaksiCategory(getValidCategoryForType(type, transaksiCategory));
   };
 
   // Form State: Tagihan
@@ -478,18 +587,31 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      setErrorMessage(null);
-      if (mode === 'TRANSAKSI' && kantongs.length > 0 && !selectedKantongId) {
-        setSelectedKantongId(kantongs[0].id);
-      }
-      backdropOpacity.value = withTiming(1, { duration: 200 });
-      translateY.value = withSpring(0, SPRING_CONFIG);
-    } else {
+    if (!visible) {
       backdropOpacity.value = withTiming(0, { duration: 150 });
       translateY.value = withTiming(SCREEN_HEIGHT, { duration: 200 });
+      return;
     }
-  }, [visible, mode, kantongs, selectedKantongId]);
+
+    setErrorMessage(null);
+    backdropOpacity.value = withTiming(1, { duration: 200 });
+    translateY.value = withSpring(0, SPRING_CONFIG);
+
+    if (mode === 'TRANSAKSI') {
+      const init = getInitialTransactionState(kantongs, selectedKantongId, defaultKantongId);
+      if (init.selectedKantongId) {
+        setSelectedKantongId(init.selectedKantongId);
+        setTransferFromKantongId(init.fromKantongId);
+        if (init.toKantongId) {
+          setTransferToKantongId(init.toKantongId);
+        }
+      }
+
+      if (defaultTransactionType) {
+        handleSelectTransaksiType(normalizeTransactionType(defaultTransactionType));
+      }
+    }
+  }, [visible, mode, kantongs, selectedKantongId, defaultKantongId, defaultTransactionType]);
 
   const smoothClose = () => {
     backdropOpacity.value = withTiming(0, { duration: 150 });
@@ -552,7 +674,7 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
       await addTransaksi({
         kantongId: selectedKantongId,
         amount: parsedAmount,
-        type: transaksiType,
+        type: transaksiType === 'INCOME' ? 'INCOME' : 'EXPENSE',
         category: transaksiCategory,
         description: transaksiDescription.trim(),
       });
@@ -568,6 +690,53 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
       setIsSubmitting(false);
       const msg = err instanceof Error ? err.message : strings.errFailedSubmitTransaction;
       setErrorMessage(`ERROR: ${msg.toUpperCase()}`);
+    }
+  };
+
+  const handleTransfer = async () => {
+    if (!transferFromKantongId) {
+      setErrorMessage(strings.errTransferSelectFrom);
+      return;
+    }
+    if (!transferToKantongId) {
+      setErrorMessage(strings.errTransferSelectTo);
+      return;
+    }
+    if (transferFromKantongId === transferToKantongId) {
+      setErrorMessage(strings.errTransferSameKantong);
+      return;
+    }
+
+    const parsedAmount = Number.parseFloat(transferAmount.replace(/[^0-9.-]+/g, ''));
+    if (!parsedAmount || parsedAmount <= 0) {
+      setErrorMessage(strings.errAmountGreaterZero);
+      return;
+    }
+
+    const fromKantong = kantongs.find((k) => k.id === transferFromKantongId);
+    if (fromKantong && fromKantong.balance < parsedAmount) {
+      setErrorMessage(strings.errTransferInsufficientBalance);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage(null);
+      await transferBalance(
+        transferFromKantongId,
+        transferToKantongId,
+        parsedAmount,
+        transferNote.trim(),
+      );
+
+      setTransferAmount('');
+      setTransferNote('');
+      setIsSubmitting(false);
+      smoothClose();
+    } catch (err) {
+      setIsSubmitting(false);
+      const msg = err instanceof Error ? err.message : strings.errFailedTransfer;
+      setErrorMessage(msg.startsWith('ERROR:') ? msg : `ERROR: ${msg.toUpperCase()}`);
     }
   };
 
@@ -739,22 +908,18 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
           <Pressable style={styles.backdropPressable} onPress={smoothClose} />
         </Animated.View>
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.keyboardAvoid}
-        >
-          <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
-            <View style={styles.dragIndicatorWrapper}>
-              <View style={styles.dragIndicator} />
-            </View>
+        <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
+          <View style={styles.dragIndicatorWrapper}>
+            <View style={styles.dragIndicator} />
+          </View>
 
-            {renderModalHeader()}
+          {renderModalHeader()}
 
-            <ScrollView
-              contentContainerStyle={styles.sheetContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
+          <ScrollView
+            contentContainerStyle={styles.sheetContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
               {Boolean(errorMessage) && (
                 <View style={styles.errorBox}>
                   <ThemedText variant="caption" style={styles.errorText}>
@@ -803,73 +968,138 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
 
               {mode === 'TRANSAKSI' && (
                 <View style={styles.formGroup}>
-                  {/* Kantong Selection */}
-                  <KantongSelector
-                    kantongs={kantongs}
-                    selectedKantongId={selectedKantongId}
-                    onSelectKantong={setSelectedKantongId}
-                    label={strings.modalSelectKantong}
-                    noKantongText={strings.modalNoKantong}
-                    colors={colors}
-                    styles={styles}
-                  />
-
-                  {/* Transaction Type: Expense vs Income */}
+                  {/* Transaction Type: Expense vs Income vs Transfer */}
                   <TransactionTypeSelector
                     activeType={transaksiType}
                     onSelectType={handleSelectTransaksiType}
                     label={strings.modalTransactionType}
                     expenseLabel={strings.modalExpense}
                     incomeLabel={strings.modalIncome}
+                    transferLabel={strings.modalTransfer}
                     colors={colors}
                     styles={styles}
                   />
 
-                  {/* Category Selection with Lucide Icons */}
-                  <CategoryPicker
-                    activeType={transaksiType}
-                    activeCategory={transaksiCategory}
-                    onSelectCategory={setTransaksiCategory}
-                    label={strings.modalCategory}
-                    colors={colors}
-                    styles={styles}
-                  />
+                  {transaksiType === 'TRANSFER' ? (
+                    <>
+                      {/* Source Kantong Selection */}
+                      <KantongSelector
+                        kantongs={kantongs}
+                        selectedKantongId={transferFromKantongId}
+                        onSelectKantong={setTransferFromKantongId}
+                        label={strings.modalFromKantong}
+                        noKantongText={strings.modalNoKantong}
+                        colors={colors}
+                        styles={styles}
+                      />
 
-                  {/* Amount Input */}
-                  <ThemedText variant="caption" style={styles.fieldLabel}>
-                    {strings.modalAmountIdr}
-                  </ThemedText>
-                  <TextInput
-                    value={transaksiAmount}
-                    onChangeText={setTransaksiAmount}
-                    placeholder="50000"
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="numeric"
-                    style={[styles.input, styles.monoInput]}
-                  />
+                      {/* Destination Kantong Selection */}
+                      <KantongSelector
+                        kantongs={kantongs}
+                        selectedKantongId={transferToKantongId}
+                        onSelectKantong={setTransferToKantongId}
+                        label={strings.modalToKantong}
+                        noKantongText={strings.modalNoKantong}
+                        colors={colors}
+                        styles={styles}
+                      />
 
-                  {/* Description Input */}
-                  <ThemedText variant="caption" style={styles.fieldLabel}>
-                    {strings.modalDescription}
-                  </ThemedText>
-                  <TextInput
-                    value={transaksiDescription}
-                    onChangeText={setTransaksiDescription}
-                    placeholder={strings.modalDescPlaceholder}
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.input}
-                  />
+                      {/* Amount Input */}
+                      <ThemedText variant="caption" style={styles.fieldLabel}>
+                        {strings.modalAmountIdr}
+                      </ThemedText>
+                      <TextInput
+                        value={transferAmount}
+                        onChangeText={setTransferAmount}
+                        placeholder="50000"
+                        placeholderTextColor={colors.textSecondary}
+                        keyboardType="numeric"
+                        style={[styles.input, styles.monoInput]}
+                      />
 
-                  <View style={styles.submitContainer}>
-                    <ThemedButton
-                      title={strings.modalSubmitTransaction}
-                      variant={transaksiType === 'EXPENSE' ? 'primary' : 'success'}
-                      size="lg"
-                      disabled={kantongs.length === 0}
-                      loading={isSubmitting}
-                      onPress={handleCreateTransaksi}
-                    />
-                  </View>
+                      {/* Note Input */}
+                      <ThemedText variant="caption" style={styles.fieldLabel}>
+                        {strings.modalTransferNote}
+                      </ThemedText>
+                      <TextInput
+                        value={transferNote}
+                        onChangeText={setTransferNote}
+                        placeholder={strings.modalTransferNotePlaceholder}
+                        placeholderTextColor={colors.textSecondary}
+                        style={styles.input}
+                      />
+
+                      <View style={styles.submitContainer}>
+                        <ThemedButton
+                          title={strings.modalSubmitTransfer}
+                          variant="primary"
+                          size="lg"
+                          disabled={kantongs.length < 2}
+                          loading={isSubmitting}
+                          onPress={handleTransfer}
+                        />
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      {/* Kantong Selection */}
+                      <KantongSelector
+                        kantongs={kantongs}
+                        selectedKantongId={selectedKantongId}
+                        onSelectKantong={setSelectedKantongId}
+                        label={strings.modalSelectKantong}
+                        noKantongText={strings.modalNoKantong}
+                        colors={colors}
+                        styles={styles}
+                      />
+
+                      {/* Category Selection with Lucide Icons */}
+                      <CategoryPicker
+                        activeType={transaksiType as TransaksiType}
+                        activeCategory={transaksiCategory}
+                        onSelectCategory={setTransaksiCategory}
+                        label={strings.modalCategory}
+                        colors={colors}
+                        styles={styles}
+                      />
+
+                      {/* Amount Input */}
+                      <ThemedText variant="caption" style={styles.fieldLabel}>
+                        {strings.modalAmountIdr}
+                      </ThemedText>
+                      <TextInput
+                        value={transaksiAmount}
+                        onChangeText={setTransaksiAmount}
+                        placeholder="50000"
+                        placeholderTextColor={colors.textSecondary}
+                        keyboardType="numeric"
+                        style={[styles.input, styles.monoInput]}
+                      />
+
+                      {/* Description Input */}
+                      <ThemedText variant="caption" style={styles.fieldLabel}>
+                        {strings.modalDescription}
+                      </ThemedText>
+                      <TextInput
+                        value={transaksiDescription}
+                        onChangeText={setTransaksiDescription}
+                        placeholder={strings.modalDescPlaceholder}
+                        placeholderTextColor={colors.textSecondary}
+                        style={styles.input}
+                      />
+
+                      <View style={styles.submitContainer}>
+                        <ThemedButton
+                          title={strings.modalSubmitTransaction}
+                          variant={transaksiType === 'EXPENSE' ? 'primary' : 'success'}
+                          size="lg"
+                          disabled={kantongs.length === 0}
+                          loading={isSubmitting}
+                          onPress={handleCreateTransaksi}
+                        />
+                      </View>
+                    </>
+                  )}
                 </View>
               )}
 
@@ -1221,11 +1451,11 @@ export function ActionModal({ visible, mode, onClose }: Readonly<ActionModalProp
                   </View>
                 </View>
               )}
+              <Animated.View style={fakeView} />
             </ScrollView>
           </Animated.View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+        </View>
+      </Modal>
   );
 }
 
@@ -1241,9 +1471,6 @@ const getStyles = (colors: ColorTheme) =>
     },
     backdropPressable: {
       flex: 1,
-    },
-    keyboardAvoid: {
-      width: '100%',
     },
     sheetContainer: {
       backgroundColor: colors.card,
@@ -1305,7 +1532,9 @@ const getStyles = (colors: ColorTheme) =>
     },
     sheetContent: {
       paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.three,
+      paddingTop: Spacing.three,
+      paddingBottom: 24,
+      flexGrow: 1,
     },
     errorBox: {
       backgroundColor: colors.backgroundElement,
@@ -1388,11 +1617,12 @@ const getStyles = (colors: ColorTheme) =>
     typeButton: {
       flex: 1,
       flexDirection: 'row',
-      gap: Spacing.one * 1.5,
+      gap: Spacing.one,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.backgroundSelected,
       paddingVertical: Spacing.two * 1.2,
+      paddingHorizontal: Spacing.one,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: BorderRadius.md,
@@ -1404,6 +1634,10 @@ const getStyles = (colors: ColorTheme) =>
     typeButtonIncomeSelected: {
       backgroundColor: colors.success,
       borderColor: colors.success,
+    },
+    typeButtonTransferSelected: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
     },
     typeButtonSelected: {
       backgroundColor: colors.accent,

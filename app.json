@@ -2,16 +2,11 @@
   "expo": {
     "name": "MonoCash",
     "slug": "mono-cash",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/expo.icon/app-icon.png",
     "scheme": "monocash",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/expo.icon/icon-foreground.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#121214"
-    },
     "ios": {
       "icon": "./assets/expo.icon",
       "infoPlist": {
@@ -23,11 +18,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#121214",
         "foregroundImage": "./assets/expo.icon/icon-foreground.png"
-      },
-      "splash": {
-        "image": "./assets/expo.icon/icon-foreground.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#121214"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [

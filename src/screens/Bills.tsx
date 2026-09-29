@@ -342,6 +342,14 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
     type: 'info',
   });
 
+  const selectedKantong = useMemo(
+    () => kantongs.find((k) => k.id === selectedKantongId),
+    [kantongs, selectedKantongId],
+  );
+  const isInsufficient = Boolean(
+    selectedKantong && selectedTagihan && selectedKantong.balance < selectedTagihan.amount,
+  );
+
   useEffect(() => {
     loadTagihans();
     if (kantongs.length === 0) {
@@ -399,8 +407,12 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
   };
 
   const handleConfirmPayment = async () => {
-    if (!selectedTagihan || !selectedKantongId) {
-      setPayError(t('errSelectKantong'));
+    if (!selectedTagihan || !selectedKantongId || isInsufficient) {
+      if (isInsufficient) {
+        setPayError(t('billsInsufficientBalanceWarning'));
+      } else {
+        setPayError(t('errSelectKantong'));
+      }
       return;
     }
 
@@ -712,20 +724,14 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
                   </ScrollView>
                 )}
 
-                {(() => {
-                  const selectedK = kantongs.find((k) => k.id === selectedKantongId);
-                  if (selectedK && selectedK.balance < selectedTagihan.amount) {
-                    return (
-                      <View style={styles.insufficientWarningBox}>
-                        <AlertTriangle size={14} color={colors.warning} />
-                        <ThemedText variant="caption" style={styles.insufficientWarningText}>
-                          {t('billsInsufficientBalanceWarning')}
-                        </ThemedText>
-                      </View>
-                    );
-                  }
-                  return null;
-                })()}
+                {isInsufficient && (
+                  <View style={styles.insufficientWarningBox}>
+                    <AlertTriangle size={14} color={colors.warning} />
+                    <ThemedText variant="caption" style={styles.insufficientWarningText}>
+                      {t('billsInsufficientBalanceWarning')}
+                    </ThemedText>
+                  </View>
+                )}
 
                 {Boolean(payError) && (
                   <View style={styles.payErrorBox}>
@@ -740,7 +746,7 @@ export default function BillsScreen(_props: Readonly<BillsScreenProps>) {
                     title={t('billsConfirmPay')}
                     variant="primary"
                     size="lg"
-                    disabled={kantongs.length === 0}
+                    disabled={kantongs.length === 0 || !selectedKantongId || isInsufficient}
                     loading={isPaying}
                     onPress={handleConfirmPayment}
                   />

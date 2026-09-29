@@ -423,7 +423,8 @@ export default function WishlistDetail({ wishlistId, onBack }: Readonly<Wishlist
       >
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
             style={styles.keyboardAvoid}
           >
             <View style={styles.modalContainer}>

@@ -150,6 +150,12 @@ export interface FinanceState {
   fetchWishlistLogs: (wishlistId: string) => Promise<WishlistProgressLog[]>;
   addWishlistProgress: (id: string, amount: number) => Promise<void>;
   exportFinanceData: () => Promise<ExportResult>;
+  transferBalance: (
+    fromKantongId: string,
+    toKantongId: string,
+    amount: number,
+    note: string,
+  ) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,6 +217,8 @@ export interface ActionModalProps {
   visible: boolean;
   mode: ActionModalMode;
   onClose: () => void;
+  defaultKantongId?: string;
+  defaultTransactionType?: TransaksiType | 'income' | 'expense' | 'transfer' | 'TRANSFER';
 }
 
 export interface TagihanCardProps {
