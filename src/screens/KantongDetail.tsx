@@ -21,6 +21,7 @@ import {
   Edit2,
   Inbox,
   Laptop,
+  MoreVertical,
   ShieldAlert,
   ShoppingBag,
   Trash2,
@@ -143,6 +144,9 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
     setIsActionModalOpen(true);
   };
 
+  // Options Modal State
+  const [isOptionsModalVisible, setIsOptionsModalVisible] = useState(false);
+
   // Edit Modal State
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editName, setEditName] = useState(kantong?.name ?? '');
@@ -161,6 +165,16 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
     setEditBalance(kantong.balance.toString());
     setEditError(null);
     setIsEditModalVisible(true);
+  };
+
+  const handleOpenEdit = () => {
+    setIsOptionsModalVisible(false);
+    openEditModal();
+  };
+
+  const handleOpenDelete = () => {
+    setIsOptionsModalVisible(false);
+    setIsDeleteModalVisible(true);
   };
 
   const handleUpdate = async () => {
@@ -255,9 +269,23 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
               {t('kantongEnvelope')}
             </ThemedText>
           </View>
-          <ThemedText variant="caption" style={styles.idText}>
-            {`#${kantong.id.slice(0, 8)}`}
-          </ThemedText>
+          <View style={styles.overviewTopRight}>
+            <ThemedText variant="caption" style={styles.idText}>
+              {`#${kantong.id.slice(0, 8)}`}
+            </ThemedText>
+            <Pressable
+              onPress={() => setIsOptionsModalVisible(true)}
+              style={({ pressed }) => [
+                styles.optionsMenuBtn,
+                pressed && styles.optionsMenuBtnPressed,
+              ]}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Kantong Options"
+            >
+              <MoreVertical size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
         </View>
 
         <ThemedText weight="bold" style={styles.kantongName}>
@@ -335,37 +363,6 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
               <ArrowUpRight size={18} color={colors.danger} />
               <ThemedText weight="bold" style={[styles.shortcutBtnText, { color: colors.danger }]}>
                 {t('expense')}
-              </ThemedText>
-            </View>
-          </ThemedButton>
-        </View>
-
-        {/* Secondary Management Row: Edit & Delete */}
-        <View style={styles.secondaryActionsRow}>
-          <ThemedButton
-            variant="secondary"
-            size="sm"
-            style={styles.secondaryActionBtn}
-            onPress={openEditModal}
-          >
-            <View style={styles.secondaryBtnContentRow}>
-              <Edit2 size={13} color={colors.textSecondary} />
-              <ThemedText weight="medium" style={styles.secondaryBtnText}>
-                {t('kantongEditTitle')}
-              </ThemedText>
-            </View>
-          </ThemedButton>
-
-          <ThemedButton
-            variant="ghost"
-            size="sm"
-            style={[styles.secondaryActionBtn, styles.secondaryDeleteBtn]}
-            onPress={() => setIsDeleteModalVisible(true)}
-          >
-            <View style={styles.secondaryBtnContentRow}>
-              <Trash2 size={13} color={colors.danger} />
-              <ThemedText weight="medium" style={styles.secondaryDeleteText}>
-                {t('kantongDeleteTitle')}
               </ThemedText>
             </View>
           </ThemedButton>
@@ -475,6 +472,73 @@ export default function KantongDetail({ kantongId, onBack }: Readonly<KantongDet
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContent}
       />
+
+      {/* Kantong Options Bottom Sheet Modal */}
+      <Modal
+        visible={isOptionsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsOptionsModalVisible(false)}
+      >
+        <View style={styles.optionsModalOverlay}>
+          <Pressable
+            style={styles.optionsBackdrop}
+            onPress={() => setIsOptionsModalVisible(false)}
+            accessibilityLabel={t('billsCancel')}
+          />
+          <View style={styles.optionsSheet}>
+            <View style={styles.optionsHandle} />
+
+            <View style={styles.optionsHeader}>
+              <ThemedText weight="bold" style={styles.optionsHeaderTitle}>
+                {kantong.name}
+              </ThemedText>
+              <Pressable
+                onPress={() => setIsOptionsModalVisible(false)}
+                style={styles.optionsCloseBtn}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <X size={18} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <Pressable
+              onPress={handleOpenEdit}
+              style={({ pressed }) => [
+                styles.optionRow,
+                pressed && styles.optionRowPressed,
+              ]}
+              accessibilityRole="button"
+            >
+              <View style={styles.optionIconBox}>
+                <Edit2 size={18} color={colors.text} />
+              </View>
+              <ThemedText weight="medium" style={styles.optionText}>
+                {t('kantongEditTitle')}
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              onPress={handleOpenDelete}
+              style={({ pressed }) => [
+                styles.optionRow,
+                styles.optionRowDanger,
+                pressed && styles.optionRowDangerPressed,
+              ]}
+              accessibilityRole="button"
+            >
+              <View style={[styles.optionIconBox, styles.optionIconBoxDanger]}>
+                <Trash2 size={18} color={colors.danger} />
+              </View>
+              <ThemedText weight="medium" style={[styles.optionText, styles.optionTextDanger]}>
+                {t('kantongDeleteTitle')}
+              </ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Edit Kantong Modal */}
       <Modal
@@ -661,6 +725,20 @@ const getStyles = (colors: ColorTheme) =>
       alignItems: 'center',
       marginBottom: Spacing.two,
     },
+    overviewTopRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one * 1.5,
+    },
+    optionsMenuBtn: {
+      padding: Spacing.half,
+      borderRadius: BorderRadius.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    optionsMenuBtnPressed: {
+      backgroundColor: colors.backgroundSelected,
+    },
     nameTag: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -757,43 +835,89 @@ const getStyles = (colors: ColorTheme) =>
       fontSize: Typography.scale.sm.fontSize,
       letterSpacing: 0.3,
     },
-    secondaryActionsRow: {
-      flexDirection: 'row',
-      gap: Spacing.two,
-      marginTop: Spacing.two,
-    },
-    secondaryActionBtn: {
-      flex: 1,
-      height: 38,
-      minHeight: 38,
-      borderRadius: BorderRadius.md,
-      backgroundColor: colors.backgroundSelected,
-      borderColor: colors.border,
-      borderWidth: 1,
-    },
-    secondaryDeleteBtn: {
-      backgroundColor: 'transparent',
-      borderColor: 'transparent',
-    },
     btnContentRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
     },
-    secondaryBtnContentRow: {
+    optionsModalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    optionsBackdrop: {
+      ...StyleSheet.absoluteFill,
+    },
+    optionsSheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: BorderRadius.xl,
+      borderTopRightRadius: BorderRadius.xl,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderBottomWidth: 0,
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.two,
+      paddingBottom: Platform.OS === 'ios' ? 36 : Spacing.three,
+    },
+    optionsHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.border,
+      alignSelf: 'center',
+      marginBottom: Spacing.two,
+    },
+    optionsHeader: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingBottom: Spacing.two,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+      marginBottom: Spacing.one,
+    },
+    optionsHeaderTitle: {
+      fontSize: Typography.scale.base.fontSize,
+      color: colors.text,
+    },
+    optionsCloseBtn: {
+      padding: Spacing.half,
+    },
+    optionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+      paddingVertical: Spacing.two,
+      paddingHorizontal: Spacing.one,
+      borderRadius: BorderRadius.md,
+    },
+    optionRowPressed: {
+      backgroundColor: colors.backgroundSelected,
+    },
+    optionRowDanger: {
+      marginTop: Spacing.half,
+    },
+    optionRowDangerPressed: {
+      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    },
+    optionIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: BorderRadius.md,
+      alignItems: 'center',
       justifyContent: 'center',
-      gap: 5,
+      backgroundColor: colors.backgroundSelected,
     },
-    secondaryBtnText: {
-      color: colors.textSecondary,
-      fontSize: Typography.scale.xs.fontSize,
+    optionIconBoxDanger: {
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
     },
-    secondaryDeleteText: {
+    optionText: {
+      fontSize: Typography.scale.sm.fontSize,
+      color: colors.text,
+    },
+    optionTextDanger: {
       color: colors.danger,
-      fontSize: Typography.scale.xs.fontSize,
     },
     sectionHeader: {
       flexDirection: 'row',
